@@ -1,0 +1,144 @@
+* {
+  min-height: 0;
+  min-width: 0;
+  font-family: "Font Awesome 6 Free", "JetBrainsMono Nerd Font", "Symbols Nerd Font Mono";
+  font-size: 19px;
+  font-weight: 600;
+}
+
+window#waybar {
+  transition-property: background-color;
+  transition-duration: 0.5s;
+  background-color: #1B1C25;
+  border-radius: 0;
+  padding: 30px;
+}
+
+window#waybar>box {
+  padding: 4px 12px;
+}
+
+#workspaces button {
+  padding: 0.3rem 0.75rem;
+  margin: 0.4rem 0.35rem;
+  border-radius: 6px;
+  background-color: #282A36;
+  color: #6272A4;
+}
+
+#workspaces button:hover {
+  background-color: #44475A;
+  color: #FF79C6;
+  font-weight: bold;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+#workspaces button.active {
+  background-color: #44475A;
+  color: #FF79C6;
+  font-weight: bold;
+}
+
+#workspaces button.urgent {
+  background-color: #FF5555;
+  color: #282A36;
+}
+
+#clock,
+#pulseaudio,
+#custom-power,
+#custom-notification,
+#cpu,
+#memory,
+#network,
+#battery,
+#language {
+  padding: 0.3rem 0.6rem;
+  margin: 0.4rem 0.25rem;
+  border-radius: 6px;
+  background-color: #282A36;
+}
+
+#language {
+  color: #FF79C6;
+}
+
+#cpu {
+  color: #8BE9FD;
+}
+
+#memory {
+  color: #BD93F9;
+}
+
+#memory.warning {
+  color: #FFB86C;
+}
+
+#memory.critical {
+  color: #FF5555;
+}
+
+#network {
+  color: #50FA7B;
+}
+
+#network.disconnected {
+  color: #FF5555;
+}
+
+#custom-notification {
+  color: #FFB86C;
+}
+
+#custom-notification.notification {
+  color: #FF79C6;
+}
+
+#custom-notification.dnd-notification {
+  color: #6272A4;
+}
+
+#clock {
+  color: #F8F8F2;
+}
+
+#pulseaudio {
+  color: #BD93F9;
+}
+
+#pulseaudio.muted {
+  color: #6272A4;
+}
+
+#battery {
+  color: #50FA7B;
+}
+
+#battery.charging {
+  color: #8BE9FD;
+}
+
+#battery.warning:not(.charging) {
+  color: #FFB86C;
+}
+
+#battery.critical:not(.charging) {
+  color: #FF5555;
+}
+
+#custom-power {
+  color: #FF5555;
+  padding-left: 10px;
+  padding-right: 14px;
+}
+
+tooltip {
+  background-color: #181825;
+  border: 2px solid #BD93F9;
+}
+
+tooltip label {
+  color: #F8F8F2;
+}

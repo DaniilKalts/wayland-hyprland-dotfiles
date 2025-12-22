@@ -1,0 +1,20 @@
+[core]
+	editor = nvim
+	autocrlf = input
+  pager = delta
+[delta]
+  syntax-theme = Dracula
+  features = side-by-side line-numbers decorations
+[user]
+	name = DaniilKalts
+	email = kaltsdaniil@gmail.com
+[color]
+	ui = auto
+[init]
+	defaultBranch = main
+[push]
+	autoSetupRemote = true
+[url "git@github.com:"]
+	insteadOf = "https://github.com"
+[merge]
+	conflictstyle = diff3
