@@ -358,38 +358,6 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 11. Dracula Theme - Cursor
-# ----------------------------------------------------------------------------
-
-header "11/16 - Installing Dracula for Cursor"
-if command -v cursor &>/dev/null; then
-    CURSOR_DRACULA="$HOME/.local/share/dracula-cursor"
-    if [[ -d "$CURSOR_DRACULA" ]]; then
-        warn "Dracula for Cursor already downloaded, skipping..."
-    else
-        step "Cloning Dracula theme for Cursor..."
-        git clone --depth 1 https://github.com/dracula/cursor.git "$CURSOR_DRACULA"
-    fi
-
-    step "Installing Dracula VSIX..."
-    cursor --install-extension "$CURSOR_DRACULA/dist/dracula-theme.vsix" --force 2>/dev/null || true
-
-    # Set Dracula as default theme
-    CURSOR_SETTINGS="$HOME/.config/Cursor/User/settings.json"
-    mkdir -p "$(dirname "$CURSOR_SETTINGS")"
-    if [[ -f "$CURSOR_SETTINGS" ]]; then
-        if ! grep -q "workbench.colorTheme" "$CURSOR_SETTINGS"; then
-            sed -i '1a\  "workbench.colorTheme": "Dracula",' "$CURSOR_SETTINGS"
-        fi
-    else
-        echo '{ "workbench.colorTheme": "Dracula" }' > "$CURSOR_SETTINGS"
-    fi
-    success "Dracula theme installed and set for Cursor!"
-else
-    warn "Cursor not installed, skipping..."
-fi
-
-# ----------------------------------------------------------------------------
 # 12. Dracula Theme - Telegram
 # ----------------------------------------------------------------------------
 
@@ -550,7 +518,7 @@ fi
 # 15. Browser Extensions Info
 # ----------------------------------------------------------------------------
 
-header "15/15 - Browser Extensions (Manual Installation Required)"
+header "15/16 - Browser Extensions (Manual Installation Required)"
 
 echo -e "${CYAN}The following browser extensions need manual installation:${NC}"
 echo ""
@@ -585,6 +553,54 @@ These extensions inject CSS into the respective websites to apply the Dracula th
 EOF
 
 success "Browser extensions info saved to ~/.config/dracula-browser-extensions.md"
+
+# ----------------------------------------------------------------------------
+# 16. Extra Dracula Themes (Manual Installation Required)
+# ----------------------------------------------------------------------------
+
+header "16/16 - Extra Dracula Themes (Manual Installation Required)"
+
+echo -e "${CYAN}Manual Dracula themes available (not auto-installed by this script):${NC}"
+echo ""
+echo -e "  ${YELLOW}Firefox${NC}:      https://draculatheme.com/firefox"
+echo -e "  ${YELLOW}Cursor${NC}:       https://draculatheme.com/cursor"
+echo -e "  ${YELLOW}Tmux${NC}:         https://draculatheme.com/tmux"
+echo -e "  ${YELLOW}Kitty${NC}:        https://draculatheme.com/kitty"
+echo -e "  ${YELLOW}Git${NC}:          https://draculatheme.com/git"
+echo -e "  ${YELLOW}Yazi${NC}:         https://draculatheme.com/yazi"
+echo -e "  ${YELLOW}Obsidian${NC}:    https://draculatheme.com/obsidian"
+echo -e "  ${YELLOW}Dunst${NC}:        https://draculatheme.com/dunst"
+echo -e "  ${YELLOW}Monkeytype${NC}:   https://draculatheme.com/monkeytype"
+echo -e "  ${YELLOW}gh-pages${NC}:     https://draculatheme.com/gh-pages"
+echo -e "  ${YELLOW}YouTube${NC}:      https://draculatheme.com/youtube"
+echo -e "  ${YELLOW}Stack Overflow${NC}: https://draculatheme.com/stackoverflow"
+echo -e "  ${YELLOW}Libreddit${NC}:    https://draculatheme.com/libreddit"
+echo ""
+echo -e "${YELLOW}Note:${NC} Apply these manually if you want Dracula styling for the listed tools/services."
+
+cat > "$HOME/.config/dracula-extra-themes.md" << 'EOF'
+# Extra Dracula Themes (Manual)
+
+The following official Dracula themes are available but not installed automatically:
+
+| Tool / Service | Link                                   |
+|----------------|----------------------------------------|
+| Firefox        | https://draculatheme.com/firefox       |
+| Cursor         | https://draculatheme.com/cursor        |
+| Tmux           | https://draculatheme.com/tmux          |
+| Kitty          | https://draculatheme.com/kitty         |
+| Git            | https://draculatheme.com/git           |
+| Yazi           | https://draculatheme.com/yazi          |
+| Obsidian       | https://draculatheme.com/obsidian      |
+| Dunst          | https://draculatheme.com/dunst         |
+| Monkeytype     | https://draculatheme.com/monkeytype    |
+| gh-pages       | https://draculatheme.com/gh-pages      |
+| YouTube        | https://draculatheme.com/youtube       |
+| Stack Overflow | https://draculatheme.com/stackoverflow |
+| Libreddit      | https://draculatheme.com/libreddit     |
+EOF
+
+success "Extra Dracula theme links saved to ~/.config/dracula-extra-themes.md"
 
 # ----------------------------------------------------------------------------
 # Complete!

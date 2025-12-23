@@ -5,7 +5,7 @@ WOFI_BIN="${WOFI_BIN:-wofi}"
 STYLE_FILE="${STYLE_FILE:-$HOME/.config/wofi/style.css}"
 
 MENU_W="${MENU_W:-320}"
-MENU_LINES="${MENU_LINES:-4}"
+MENU_LINES="${MENU_LINES:-5}"
 
 ICON_AI="󰙴"
 
