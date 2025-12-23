@@ -1,7 +1,6 @@
 {
   "layer": "top",
   "position": "top",
-  "height": 40,
   "spacing": 4,
   "exclusive": true,
   "gtk-layer-shell": true,
@@ -26,9 +25,10 @@
   "hyprland/workspaces": {
     "on-click": "activate",
     "format": "{id}",
-    "all-outputs": true,
+    "all-outputs": false,
     "disable-scroll": false,
-    "active-only": false
+    "move-to-monitor": true,
+    "sort-by": "number"
   },
   "hyprland/language": {
     "format": " {}",

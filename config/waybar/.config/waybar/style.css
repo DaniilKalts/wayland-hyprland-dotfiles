@@ -11,7 +11,8 @@ window#waybar {
   transition-duration: 0.5s;
   background-color: #1B1C25;
   border-radius: 0;
-  padding: 30px;
+  padding: 0;
+  margin: 0;
 }
 
 window#waybar>box {
