@@ -1,0 +1,38 @@
+# Satty Screenshot Annotation Configuration
+# https://github.com/gabm/satty
+
+[general]
+# Start in fullscreen mode (disabled - use window mode for better control)
+fullscreen = false
+
+# Exit after copying or saving (disabled - let user decide when to close)
+early-exit = false
+
+# Default save location for screenshots
+output-filename = "~/Pictures/screenshots/screenshot-%Y%m%d-%H%M%S.png"
+
+# Copy command (for Wayland clipboard)
+copy-command = "wl-copy"
+
+# Initial tool when satty opens
+# Options: pointer, crop, line, arrow, rectangle, ellipse, text, marker, blur, highlight, brush
+initial-tool = "pointer"
+
+# Rounded corners for rectangles (0 disables, default 12)
+corner-roundness = 12
+
+# Annotation size factor (increase/decrease annotation sizes)
+annotation-size-factor = 1.0
+
+[color-palette]
+# Dracula theme colors - first 5 colors in the palette
+palette = ["#BD93F9", "#FF79C6", "#50FA7B", "#FFB86C", "#8BE9FD"]
+# Additional custom colors
+custom = ["#F8F8F2", "#282A36", "#44475A", "#6272A4"]
+
+[font]
+# Font family for text annotations
+family = "JetBrainsMono Nerd Font"
+
+# Font style (default: "Regular")
+# style = "Regular"

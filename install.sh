@@ -122,7 +122,7 @@ PACMAN_PACKAGES=(
     pipewire pipewire-pulse wireplumber pavucontrol playerctl
 
     # Screenshots & Media
-    grim slurp imagemagick obs-studio brightnessctl
+    grim slurp satty imagemagick obs-studio brightnessctl
 
     # Applications
     telegram-desktop obsidian zathura zathura-pdf-mupdf
