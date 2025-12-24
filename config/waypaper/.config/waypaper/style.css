@@ -1,0 +1,102 @@
+/* Waypaper - Dracula Theme */
+
+* {
+  font-family: "Font Awesome 6 Free", "JetBrainsMono Nerd Font", "Symbols Nerd Font Mono";
+  font-size: 13px;
+}
+
+window {
+  background-color: #282a36;
+  color: #f8f8f2;
+}
+
+/* Buttons */
+button {
+  background-color: #44475a;
+  color: #f8f8f2;
+  border: 1px solid #6272a4;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #565b7a;
+}
+
+scrolledwindow button {
+  margin: 5px;
+}
+
+/* Entry */
+entry {
+  background-color: #44475a;
+  color: #f8f8f2;
+  border: 1px solid #6272a4;
+  border-radius: 4px;
+  padding: 3px 12px;
+}
+
+entry:focus {
+  background-color: #565b7a;
+  border: 1px solid #6272a4;
+}
+
+entry selection {
+  background-color: #bd93f9;
+  color: #282a36;
+}
+
+/* Scrollbar */
+scrollbar {
+  background-color: transparent;
+}
+
+scrollbar slider {
+  background-color: #44475a;
+  border-radius: 6px;
+  min-width: 6px;
+}
+
+scrollbar slider:hover {
+  background-color: #6272a4;
+}
+
+/* Dropdowns */
+combobox button {
+  background-color: #44475a;
+  color: #f8f8f2;
+  border: 1px solid #6272a4;
+  border-radius: 4px;
+  padding: 8px 14px;
+}
+
+menu {
+  background-color: #44475a;
+  border: 1px solid #6272a4;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+menuitem {
+  background-color: transparent;
+  color: #f8f8f2;
+  padding: 8px 12px;
+  border-radius: 2px;
+}
+
+menuitem:hover {
+  background-color: #6272a4;
+}
+
+/* Labels */
+label {
+  color: #f8f8f2;
+}
+
+/* Tooltips */
+tooltip {
+  background-color: #44475a;
+  color: #f8f8f2;
+  border: 1px solid #6272a4;
+  border-radius: 4px;
+  padding: 6px 10px;
+}
