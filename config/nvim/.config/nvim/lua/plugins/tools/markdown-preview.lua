@@ -1,17 +1,11 @@
 return {
   {
-    "iamcco/markdown-preview.nvim",
-    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+    "MeanderingProgrammer/render-markdown.nvim",
+    dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-web-devicons" },
     ft = { "markdown" },
-    build = function()
-      require("lazy").load({ plugins = { "markdown-preview.nvim" } })
-      vim.fn["mkdp#util#install"]()
-    end,
-    init = function()
-      vim.g.mkdp_theme = "dark"
-    end,
+    opts = {},
     keys = {
-      { "<leader>mp", "<cmd>MarkdownPreviewToggle<cr>", ft = "markdown", desc = "Markdown Preview" },
+      { "<C-m>", "<cmd>RenderMarkdown toggle<cr>", ft = "markdown", desc = "Toggle Markdown Preview" },
     },
   },
 }

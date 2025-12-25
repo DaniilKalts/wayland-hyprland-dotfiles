@@ -2,6 +2,16 @@ return {
   "michaelrommel/nvim-silicon",
   lazy = true,
   cmd = "Silicon",
+  keys = {
+    {
+      "<C-s>",
+      function()
+        require("nvim-silicon").shoot()
+      end,
+      mode = "v",
+      desc = "Save code screenshot",
+    },
+  },
   config = function()
     local silicon = require("nvim-silicon")
 
@@ -9,6 +19,9 @@ return {
       font = "JetBrainsMono Nerd Font=34;Noto Color Emoji=34",
       theme = "Dracula",
       background = "#21222C",
+      output = function()
+        return "~/Pictures/screenshots/code_" .. os.date("%Y-%m-%d_%H-%M-%S") .. ".png"
+      end,
       window_title = function()
         return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()), ":t")
       end,
