@@ -6,21 +6,22 @@
   monitor              = 0
   follow               = mouse
   shrink               = no
-  padding              = 20
-  horizontal_padding   = 20
-  
-  width                = 400
-  height               = 400
-  offset               = 16x60
+  padding              = 16
+  horizontal_padding   = 16
+
+  width                = (300, 500)
+  height               = (0, 400)
+  offset               = (16, 60)
   origin               = top-right
 
-  frame_width          = 2
+  frame_width          = 3
   separator_height     = 2
-  frame_color          = "#282A36"
-  separator_color      = "#282A36"
+  frame_color          = "#BD93F9"
+  separator_color      = "#6272A4"
 
-  sort                 = no
-  font                 = "JetBrainsMono Nerd Font 15"
+  sort                 = yes
+  font                 = "JetBrainsMono Nerd Font 14"
+  line_height          = 0
   markup               = full
   format               = "<b>%s</b>\n%b"
   alignment            = left
@@ -32,31 +33,64 @@
   show_indicators      = yes
 
   icon_position        = left
-  max_icon_size        = 60
-  sticky_history       = no
-  history_length       = 6
+  min_icon_size        = 32
+  max_icon_size        = 128
+  icon_path            = /usr/share/icons/breeze-dark/status/64:/usr/share/icons/breeze-dark/actions/64:/usr/share/icons/Adwaita/64x64/status:/usr/share/icons/hicolor/64x64/apps
+
+  sticky_history       = yes
+  history_length       = 20
+  dmenu                = /usr/bin/wofi --dmenu -p dunst
+  browser              = /usr/bin/firefox-developer-edition
+  always_run_script    = true
+
   title                = Dunst
   class                = Dunst
-  corner_radius        = 0
+  corner_radius        = 10
+  progress_bar         = true
+  progress_bar_height  = 10
+  progress_bar_frame_width = 1
+  progress_bar_min_width = 150
+  progress_bar_max_width = 500
 
   mouse_left_click     = close_current
-  mouse_middle_click   = do_action
+  mouse_middle_click   = do_action, close_current
   mouse_right_click    = close_all
 
 [urgency_low]
   background           = "#282A36"
-  frame_color          = "#BD93F9"
+  frame_color          = "#6272A4"
   foreground           = "#F8F8F2"
-  timeout              = 5
+  timeout              = 4
 
 [urgency_normal]
   background           = "#282A36"
   frame_color          = "#BD93F9"
   foreground           = "#F8F8F2"
-  timeout              = 5
+  timeout              = 8
 
 [urgency_critical]
-  background           = "#282A36"
-  frame_color          = "#BD93F9"
+  background           = "#FF5555"
+  frame_color          = "#FF79C6"
   foreground           = "#F8F8F2"
+  timeout              = 0
+
+# Screenshot notifications
+[screenshot]
+  appname              = "screenshot"
+  urgency              = normal
+  frame_color          = "#50FA7B"
+  timeout              = 10
+
+# Color picker notifications
+[color-picker]
+  appname              = "color-picker"
+  urgency              = low
+  frame_color          = "#8BE9FD"
+  timeout              = 5
+
+# Telegram notifications
+[telegram]
+  appname              = "telegram*"
+  urgency              = normal
+  frame_color          = "#8BE9FD"
   timeout              = 10
