@@ -4,12 +4,6 @@ vim.o.termguicolors = true
 -- Path to store lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
--- Clone lazy.nvim if it doesn't exist
-if not vim.loop.fs_stat(lazypath) then
-	local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-	vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
-end
-
 -- Add lazypath to runtimepath
 vim.opt.rtp:prepend(lazypath)
 

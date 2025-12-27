@@ -144,13 +144,22 @@ success "Pacman packages installed!"
 
 header "3.1/16 - Installing lazy.nvim"
 LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.nvim"
+
+# Ensure parent directory exists
+mkdir -p "$(dirname "$LAZY_DIR")"
+
+# Remove existing lazy.nvim directory for a clean install
 if [[ -d "$LAZY_DIR" ]]; then
-    warn "lazy.nvim already installed, skipping..."
-else
-    step "Cloning lazy.nvim..."
-    mkdir -p "$(dirname "$LAZY_DIR")"
-    git clone --filter=blob:none --branch=stable https://github.com/folke/lazy.nvim.git "$LAZY_DIR"
+    warn "Existing lazy.nvim found. Removing for clean install..."
+    rm -rf "$LAZY_DIR"
+fi
+
+step "Cloning lazy.nvim..."
+if git clone --filter=blob:none --branch=stable https://github.com/folke/lazy.nvim.git "$LAZY_DIR"; then
     success "lazy.nvim installed!"
+else
+    err "Failed to clone lazy.nvim. Please check your internet connection or git installation."
+    exit 1
 fi
 
 # ----------------------------------------------------------------------------
@@ -306,6 +315,12 @@ for dir in */; do
     stow -t ~ "$name" || warn "  $name may have conflicts"
 done
 success "Home files stowed!"
+
+# 7.1 Install Neovim Plugins via lazy.nvim
+header "7.1/16 - Installing Neovim Plugins"
+step "Running lazy.nvim sync to install and update Neovim plugins..."
+nvim --headless "+Lazy! sync" +qa || err "Failed to sync lazy.nvim plugins. Please open Neovim manually to complete installation."
+success "Neovim plugins synchronized!"
 
 # ----------------------------------------------------------------------------
 # 8. Copy Scripts & Wallpapers
