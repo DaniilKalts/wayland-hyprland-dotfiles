@@ -25,10 +25,10 @@ corner-roundness = 12
 annotation-size-factor = 1.0
 
 # Enable notifications (shows when screenshot is saved)
-disable-notifications = true
+disable-notifications = false
 
 # Save after copy (create file even when copying to clipboard)
-save-after-copy = true
+save-after-copy = false
 
 # Action when Enter is pressed (save-to-file or save-to-clipboard)
 action-on-enter = "save-to-file"
