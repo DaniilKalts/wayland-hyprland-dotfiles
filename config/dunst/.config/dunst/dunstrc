@@ -11,12 +11,12 @@
 
   width                = (300, 500)
   height               = (0, 400)
-  offset               = (16, 60)
+  offset               = (16, 40)
   origin               = top-right
 
   frame_width          = 3
   separator_height     = 2
-  frame_color          = "#BD93F9"
+  frame_color          = "#8AE6FA"
   separator_color      = "#6272A4"
 
   sort                 = yes
@@ -58,19 +58,19 @@
 
 [urgency_low]
   background           = "#282A36"
-  frame_color          = "#6272A4"
+  frame_color          = "#8AE6FA"
   foreground           = "#F8F8F2"
   timeout              = 4
 
 [urgency_normal]
   background           = "#282A36"
-  frame_color          = "#BD93F9"
+  frame_color          = "#8AE6FA"
   foreground           = "#F8F8F2"
   timeout              = 8
 
 [urgency_critical]
   background           = "#FF5555"
-  frame_color          = "#FF79C6"
+  frame_color          = "#8AE6FA"
   foreground           = "#F8F8F2"
   timeout              = 0
 
@@ -78,19 +78,19 @@
 [screenshot]
   appname              = "screenshot"
   urgency              = normal
-  frame_color          = "#50FA7B"
+  frame_color          = "#8AE6FA"
   timeout              = 10
 
 # Color picker notifications
 [color-picker]
   appname              = "color-picker"
   urgency              = low
-  frame_color          = "#8BE9FD"
+  frame_color          = "#8AE6FA"
   timeout              = 5
 
 # Telegram notifications
 [telegram]
   appname              = "telegram*"
   urgency              = normal
-  frame_color          = "#8BE9FD"
+  frame_color          = "#8AE6FA"
   timeout              = 10
