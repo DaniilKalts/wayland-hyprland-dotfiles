@@ -83,6 +83,7 @@
     "tooltip-format-wifi": "Signal: {signalStrength}%\nSpeed: {bandwidthDownBits} ↓ {bandwidthUpBits} ↑",
     "tooltip-format-ethernet": "Network: {ifname}\nSpeed: {bandwidthDownBits} ↓ {bandwidthUpBits} ↑",
     "tooltip-format-disconnected": "No network connection",
+    "on-click": "kitty -e nmtui",
     "interval": 5
   },
   "battery": {
