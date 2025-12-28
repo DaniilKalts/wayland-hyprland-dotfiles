@@ -297,6 +297,7 @@ for dir in */; do
     step "  Stowing $name..."
     backup "$HOME/.config/$name"
     [[ "$name" == "hypr" ]] && backup "$HOME/.config/hypr/hyprland.conf"
+    [[ "$name" == "cursor" ]] && backup "$HOME/.config/Cursor/User/keybindings.json" && backup "$HOME/.config/Cursor/User/settings.json"
     stow -t ~ "$name" || warn "  $name may have conflicts"
 done
 success "Config files stowed!"

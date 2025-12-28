@@ -1,0 +1,114 @@
+// ============================================================================
+// CURSOR KEYBINDINGS
+// ============================================================================
+// This file contains custom keybindings organized by category.
+// Keybindings are grouped logically for easy maintenance.
+// ============================================================================
+
+[
+  // ============================================================================
+  // UNBINDS - Remove default keybindings
+  // ============================================================================
+  {
+    "key": "ctrl+b",
+    "command": "-workbench.action.toggleSidebarVisibility"
+  },
+  {
+    "key": "ctrl+k",
+    "command": "-workbench.action.togglePanel"
+  },
+  {
+    "key": "ctrl+p",
+    "command": "-workbench.action.quickOpen"
+  },
+  {
+    "key": "ctrl+shift+a",
+    "command": "-editor.action.blockComment",
+    "when": "editorTextFocus && !editorReadonly"
+  },
+  {
+    "key": "ctrl+shift+a",
+    "command": "-notification.acceptPrimaryAction",
+    "when": "notificationFocus || notificationToastsVisible"
+  },
+  {
+    "key": "ctrl+shift+j",
+    "command": "-aiSettings.action.open",
+    "when": "!isSettingsPaneOpen"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "-composer.closeComposerTab",
+    "when": "composerFocused && !editorTextFocus || !editorTextFocus && focusedView =~ /^workbench.panel.aichat.view/"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "-workbench.action.backgroundComposer.close",
+    "when": "!editorTextFocus && focusedView =~ /^workbench.view.backgroundAgent.content/"
+  },
+  {
+    "key": "ctrl+w",
+    "command": "-workbench.action.terminal.killEditor",
+    "when": "terminalEditorFocus && terminalFocus && terminalHasBeenCreated || terminalEditorFocus && terminalFocus && terminalProcessSupported"
+  },
+
+  // ============================================================================
+  // VIM NAVIGATION BINDINGS (hjl)
+  // ============================================================================
+  // These work everywhere: editor, terminal, vim mode
+  // Ctrl+H: Toggle sidebar (left)
+  {
+    "key": "ctrl+h",
+    "command": "workbench.action.toggleSidebarVisibility"
+  },
+  // Ctrl+J: Toggle panel/terminal (down)
+  {
+    "key": "ctrl+j",
+    "command": "workbench.action.togglePanel"
+  },
+  // Ctrl+L: Open Cursor AI agent (right)
+  {
+    "key": "ctrl+l",
+    "command": "composerMode.agent"
+  },
+
+  // ============================================================================
+  // CURSOR AI BINDINGS
+  // ============================================================================
+  // Ctrl+I: Open Cursor AI agent (alternative)
+  {
+    "key": "ctrl+i",
+    "command": "composerMode.agent"
+  },
+  // Ctrl+Shift+S: Open AI settings
+  {
+    "key": "ctrl+shift+s",
+    "command": "aiSettings.action.open",
+    "when": "!isSettingsPaneOpen"
+  },
+
+  // ============================================================================
+  // EDITOR BINDINGS
+  // ============================================================================
+  // Ctrl+W: Close active editor tab
+  {
+    "key": "ctrl+w",
+    "command": "workbench.action.closeActiveEditor",
+    "when": "editorTextFocus"
+  },
+  // Ctrl+F: Quick open file (replaces Ctrl+P)
+  {
+    "key": "ctrl+f",
+    "command": "workbench.action.quickOpen"
+  },
+
+  // ============================================================================
+  // TERMINAL BINDINGS
+  // ============================================================================
+  // W: Kill terminal editor (vim-style)
+  {
+    "key": "w",
+    "command": "workbench.action.terminal.killEditor",
+    "when": "terminalEditorFocus && terminalFocus && terminalHasBeenCreated || terminalEditorFocus && terminalFocus && terminalProcessSupported"
+  }
+]
