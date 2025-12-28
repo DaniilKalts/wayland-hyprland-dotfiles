@@ -14,7 +14,7 @@ set -e
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # Prevent running as root
-[[ "$EUID" -eq 0 ]] && echo "Do not run as root!" && exit 1
+[[ "${EUID:-$(id -u)}" -eq 0 ]] && echo "Do not run as root!" && exit 1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -25,11 +25,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[0;33m'
 BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' NC='\033[0m'
 
-header()  { echo -e "\n${PURPLE}══════════════════════════════════════════════════════════════${NC}\n${CYAN}  $1${NC}\n${PURPLE}══════════════════════════════════════════════════════════════${NC}\n"; }
+header() {
+    echo -e "\n${PURPLE}══════════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}  $1${NC}"
+    echo -e "${PURPLE}══════════════════════════════════════════════════════════════════════════════${NC}\n"
+}
+
 step()    { echo -e "${BLUE}[*]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 err()     { echo -e "${RED}[✗]${NC} $1"; }
+
+die() { err "$1"; exit 1; }
 
 # Backup file/dir if it exists and is not a symlink
 backup() {
@@ -47,11 +54,38 @@ clone_if_missing() {
     local url="$1" dest="$2" name="$3"
     if [[ -d "$dest" ]]; then
         warn "$name already installed, skipping..."
-    else
-        step "Installing $name..."
-        git clone "$url" "$dest"
-        success "$name installed!"
+        return 0
     fi
+
+    step "Installing $name..."
+    git clone "$url" "$dest"
+    success "$name installed!"
+}
+
+require_cmd() {
+    command -v "$1" &>/dev/null || die "Missing required command: $1"
+}
+
+ensure_dir() {
+    mkdir -p "$1"
+}
+
+copy_dir_contents() {
+    local src="$1" dst="$2" what="$3"
+
+    if [[ ! -d "$src" ]]; then
+        warn "$what source folder not found: $src (skipping)"
+        return 0
+    fi
+
+    # Copy only if there is at least one entry
+    if ! ls -A "$src" &>/dev/null; then
+        warn "$what folder is empty: $src (skipping)"
+        return 0
+    fi
+
+    ensure_dir "$dst"
+    cp -r "$src/"* "$dst/"
 }
 
 # ----------------------------------------------------------------------------
@@ -94,10 +128,13 @@ if command -v yay &>/dev/null; then
 else
     step "Installing dependencies..."
     sudo pacman -S --needed --noconfirm base-devel git
+
     step "Building yay..."
-    git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git
-    (cd /tmp/yay-git && makepkg -si --noconfirm)
-    rm -rf /tmp/yay-git
+    local_tmp="/tmp/yay-git"
+    rm -rf "$local_tmp"
+    git clone https://aur.archlinux.org/yay-git.git "$local_tmp"
+    (cd "$local_tmp" && makepkg -si --noconfirm)
+    rm -rf "$local_tmp"
     success "Yay installed!"
 fi
 
@@ -143,12 +180,10 @@ success "Pacman packages installed!"
 # ----------------------------------------------------------------------------
 
 header "3.1/16 - Installing lazy.nvim"
+
 LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.nvim"
+ensure_dir "$(dirname "$LAZY_DIR")"
 
-# Ensure parent directory exists
-mkdir -p "$(dirname "$LAZY_DIR")"
-
-# Remove existing lazy.nvim directory for a clean install
 if [[ -d "$LAZY_DIR" ]]; then
     warn "Existing lazy.nvim found. Removing for clean install..."
     rm -rf "$LAZY_DIR"
@@ -158,8 +193,7 @@ step "Cloning lazy.nvim..."
 if git clone --filter=blob:none --branch=stable https://github.com/folke/lazy.nvim.git "$LAZY_DIR"; then
     success "lazy.nvim installed!"
 else
-    err "Failed to clone lazy.nvim. Please check your internet connection or git installation."
-    exit 1
+    die "Failed to clone lazy.nvim. Please check your internet connection or git installation."
 fi
 
 # ----------------------------------------------------------------------------
@@ -180,21 +214,24 @@ success "AUR packages installed!"
 
 header "4.1/16 - Activating Dracula GTK Theme & Icons"
 
-# Install Dracula Icon Theme
 ICON_DIR="$HOME/.icons"
 if [[ -d "$ICON_DIR/Dracula" ]]; then
     warn "Dracula icons already installed, skipping..."
 else
     step "Downloading Dracula icon theme..."
-    TEMP_DIR=$(mktemp -d)
+    TEMP_DIR="$(mktemp -d)"
     curl -fsSL -o "$TEMP_DIR/Dracula-icons.zip" \
         "https://github.com/dracula/gtk/files/5214870/Dracula.zip"
+
     step "Extracting Dracula icons..."
-    mkdir -p "$ICON_DIR"
+    ensure_dir "$ICON_DIR"
     unzip -q "$TEMP_DIR/Dracula-icons.zip" -d "$ICON_DIR"
     rm -rf "$TEMP_DIR"
+
     step "Updating icon cache..."
-    gtk-update-icon-cache -f -t "$ICON_DIR/Dracula" 2>/dev/null || true
+    if command -v gtk-update-icon-cache &>/dev/null; then
+        gtk-update-icon-cache -f -t "$ICON_DIR/Dracula" 2>/dev/null || true
+    fi
     success "Dracula icons installed!"
 fi
 
@@ -208,7 +245,6 @@ success "gsettings configured!"
 
 # Also set cursor size
 gsettings set org.gnome.desktop.interface cursor-size 24
-
 success "Dracula GTK theme & icons activated!"
 
 # ----------------------------------------------------------------------------
@@ -216,18 +252,20 @@ success "Dracula GTK theme & icons activated!"
 # ----------------------------------------------------------------------------
 
 header "5/16 - Installing Nerd Fonts"
+
 FONT_DIR="$HOME/.local/share/fonts"
-mkdir -p "$FONT_DIR"
+ensure_dir "$FONT_DIR"
 
 if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
     warn "JetBrainsMono Nerd Font already installed, skipping..."
 else
     step "Downloading JetBrainsMono Nerd Font..."
-    TEMP_DIR=$(mktemp -d)
+    TEMP_DIR="$(mktemp -d)"
     curl -fsSL -o "$TEMP_DIR/JetBrainsMono.tar.xz" \
         "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
+
     step "Extracting font..."
-    mkdir -p "$FONT_DIR/JetBrainsMono"
+    ensure_dir "$FONT_DIR/JetBrainsMono"
     tar -xf "$TEMP_DIR/JetBrainsMono.tar.xz" -C "$FONT_DIR/JetBrainsMono"
     rm -rf "$TEMP_DIR"
     success "JetBrainsMono Nerd Font installed!"
@@ -274,7 +312,7 @@ for plugin in "${ZSH_PLUGINS[@]}"; do
 done
 
 # Set ZSH as default shell
-ZSH_PATH=$(which zsh)
+ZSH_PATH="$(command -v zsh)"
 if [[ "$(getent passwd "$USER" | cut -d: -f7)" != "$ZSH_PATH" ]]; then
     step "Setting ZSH as default shell..."
     sudo chsh -s "$ZSH_PATH" "$USER"
@@ -291,33 +329,45 @@ header "7/16 - Stowing Dotfiles"
 
 # Stow config files
 step "Stowing config files..."
-cd "$SCRIPT_DIR/config"
-for dir in */; do
-    name="${dir%/}"
-    step "  Stowing $name..."
-    backup "$HOME/.config/$name"
-    [[ "$name" == "hypr" ]] && backup "$HOME/.config/hypr/hyprland.conf"
-    [[ "$name" == "cursor" ]] && backup "$HOME/.config/Cursor/User/keybindings.json" && backup "$HOME/.config/Cursor/User/settings.json"
-    stow -t ~ "$name" || warn "  $name may have conflicts"
-done
-success "Config files stowed!"
+if [[ -d "$SCRIPT_DIR/config" ]]; then
+    for dir in "$SCRIPT_DIR/config"/*/; do
+        name="$(basename "$dir")"
+        step "  Stowing $name..."
+        backup "$HOME/.config/$name"
+        [[ "$name" == "hypr" ]] && backup "$HOME/.config/hypr/hyprland.conf"
+        if [[ "$name" == "cursor" ]]; then
+            backup "$HOME/.config/Cursor/User/keybindings.json"
+            backup "$HOME/.config/Cursor/User/settings.json"
+        fi
+        stow -t "$HOME" -d "$SCRIPT_DIR/config" "$name" || warn "  $name may have conflicts"
+    done
+    success "Config files stowed!"
+else
+    warn "Config folder not found: $SCRIPT_DIR/config (skipping)"
+fi
 
 # Stow home files
 step "Stowing home files..."
-cd "$SCRIPT_DIR/home"
-for dir in */; do
-    name="${dir%/}"
-    step "  Stowing $name..."
-    case "$name" in
-        zsh)  backup "$HOME/.zshrc"; backup "$HOME/.p10k.zsh" ;;
-        git)  backup "$HOME/.gitconfig" ;;
-        tmux) backup "$HOME/.tmux.conf" ;;
-    esac
-    stow -t ~ "$name" || warn "  $name may have conflicts"
-done
-success "Home files stowed!"
+if [[ -d "$SCRIPT_DIR/home" ]]; then
+    for dir in "$SCRIPT_DIR/home"/*/; do
+        name="$(basename "$dir")"
+        step "  Stowing $name..."
+        case "$name" in
+            zsh)  backup "$HOME/.zshrc"; backup "$HOME/.p10k.zsh" ;;
+            git)  backup "$HOME/.gitconfig" ;;
+            tmux) backup "$HOME/.tmux.conf" ;;
+        esac
+        stow -t "$HOME" -d "$SCRIPT_DIR/home" "$name" || warn "  $name may have conflicts"
+    done
+    success "Home files stowed!"
+else
+    warn "Home folder not found: $SCRIPT_DIR/home (skipping)"
+fi
 
+# ----------------------------------------------------------------------------
 # 7.1 Install Neovim Plugins via lazy.nvim
+# ----------------------------------------------------------------------------
+
 header "7.1/16 - Installing Neovim Plugins"
 step "Running lazy.nvim sync to install and update Neovim plugins..."
 nvim --headless "+Lazy! sync" +qa || err "Failed to sync lazy.nvim plugins. Please open Neovim manually to complete installation."
@@ -330,15 +380,13 @@ success "Neovim plugins synchronized!"
 header "8/16 - Copying Scripts & Wallpapers"
 
 step "Copying scripts to ~/.local/bin..."
-mkdir -p ~/.local/bin
-cp -r "$SCRIPT_DIR/bin/"* ~/.local/bin/
-find ~/.local/bin -type f -name "*.sh" -exec chmod +x {} \;
-chmod +x ~/.local/bin/* 2>/dev/null || true
+copy_dir_contents "$SCRIPT_DIR/bin" "$HOME/.local/bin" "Scripts"
+find "$HOME/.local/bin" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+chmod +x "$HOME/.local/bin"/* 2>/dev/null || true
 success "Scripts copied!"
 
 step "Copying wallpapers..."
-mkdir -p ~/wallpapers
-cp -r "$SCRIPT_DIR/wallpapers/"* ~/wallpapers/
+copy_dir_contents "$SCRIPT_DIR/wallpapers" "$HOME/wallpapers" "Wallpapers"
 success "Wallpapers copied!"
 
 # ----------------------------------------------------------------------------
@@ -357,9 +405,9 @@ if command -v code &>/dev/null; then
     step "Installing Dracula Official extension..."
     code --install-extension dracula-theme.theme-dracula --force 2>/dev/null || true
 
-    # Set Dracula as default theme
     VSCODE_SETTINGS="$HOME/.config/Code/User/settings.json"
-    mkdir -p "$(dirname "$VSCODE_SETTINGS")"
+    ensure_dir "$(dirname "$VSCODE_SETTINGS")"
+
     if [[ -f "$VSCODE_SETTINGS" ]]; then
         if ! grep -q "workbench.colorTheme" "$VSCODE_SETTINGS"; then
             # Add theme to existing settings
@@ -368,6 +416,7 @@ if command -v code &>/dev/null; then
     else
         echo '{ "workbench.colorTheme": "Dracula" }' > "$VSCODE_SETTINGS"
     fi
+
     success "Dracula theme installed and set for VSCode!"
 else
     warn "VSCode not installed, skipping..."
@@ -389,7 +438,6 @@ else
     success "Dracula theme files downloaded!"
 fi
 
-# Try to find Telegram themes directory and copy theme
 if [[ -d "$TELEGRAM_THEMES" ]]; then
     step "Copying theme to Telegram..."
     cp "$TELEGRAM_DRACULA/colors.tdesktop-theme" "$TELEGRAM_THEMES/" 2>/dev/null || true
@@ -415,13 +463,12 @@ else
     git clone --depth 1 https://github.com/dracula/libreoffice.git "$LIBREOFFICE_DRACULA"
 fi
 
-# Try multiple LibreOffice config paths
 LIBREOFFICE_INSTALLED=false
-for version in 4 24.2 24.8 7 ; do
+for version in 4 24.2 24.8 7; do
     LIBREOFFICE_CONFIG="$HOME/.config/libreoffice/${version}/user/config"
     if [[ -d "$(dirname "$LIBREOFFICE_CONFIG")" ]]; then
         step "Installing Dracula palette for LibreOffice $version..."
-        mkdir -p "$LIBREOFFICE_CONFIG"
+        ensure_dir "$LIBREOFFICE_CONFIG"
         cp "$LIBREOFFICE_DRACULA/dracula.soc" "$LIBREOFFICE_CONFIG/"
         LIBREOFFICE_INSTALLED=true
     fi
@@ -440,14 +487,12 @@ fi
 
 header "14/16 - Configuring Dracula for Shell Tools"
 
-# Download all Dracula shell themes
 TTY_DRACULA="$HOME/.local/share/dracula-tty"
 ZSH_SYNTAX_DRACULA="$HOME/.local/share/dracula-zsh-syntax-highlighting"
 
 clone_if_missing "https://github.com/dracula/tty.git" "$TTY_DRACULA" "Dracula TTY"
 clone_if_missing "https://github.com/dracula/zsh-syntax-highlighting.git" "$ZSH_SYNTAX_DRACULA" "Dracula zsh-syntax-highlighting"
 
-# Add all shell configurations to .zshrc
 if ! grep -q "# Dracula Theme Configuration" "$HOME/.zshrc" 2>/dev/null; then
     step "Adding Dracula shell configurations to .zshrc..."
     cat >> "$HOME/.zshrc" << 'DRACULAEOF'
@@ -547,6 +592,7 @@ echo ""
 echo -e "${CYAN}All are available in Chrome Web Store and Firefox Add-ons.${NC}"
 
 # Save to file for reference
+mkdir -p "$HOME/.config"
 cat > "$HOME/.config/dracula-browser-extensions.md" << 'EOF'
 # Dracula Browser Extensions
 
