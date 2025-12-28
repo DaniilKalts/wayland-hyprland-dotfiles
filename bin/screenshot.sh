@@ -18,12 +18,12 @@ mkdir -p "$SCREENSHOT_DIR"
 case "$MODE" in
     fullscreen)
         # Fullscreen screenshot with satty annotation
-        grim -l 0 - | satty --filename - --notify-copied
+        grim -l 0 - | satty --filename -
         ;;
 
     region)
         # Region selection screenshot with satty annotation
-        grim -l 0 -g "$(slurp)" - | satty --filename - --notify-copied
+        grim -l 0 -g "$(slurp)" - | satty --filename -
         ;;
 
     fullscreen-save)

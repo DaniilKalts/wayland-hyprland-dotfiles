@@ -25,7 +25,7 @@ corner-roundness = 12
 annotation-size-factor = 1.0
 
 # Enable notifications (shows when screenshot is saved)
-disable-notifications = false
+disable-notifications = true
 
 # Save after copy (create file even when copying to clipboard)
 save-after-copy = false
