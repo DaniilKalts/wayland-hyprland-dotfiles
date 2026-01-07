@@ -169,6 +169,12 @@ bindkey -M viins '^G' rg_fzf_preview
 bindkey -M vicmd '^G' rg_fzf_preview
 # bindkey -M viins '^X' clear-screen-function # Placeholder for Ctrl+X
 
+# --> Edit current command line in $EDITOR (Ctrl+X Ctrl+E)
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey -M viins '^E' edit-command-line
+bindkey -M vicmd '^E' edit-command-line
+
 # ------------------------------------------------------------------------------
 # 🏷️ ALIASES
 #
