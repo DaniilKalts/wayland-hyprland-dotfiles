@@ -184,7 +184,8 @@ bindkey -M vicmd '^E' edit-command-line
 # --> General & System
 alias cls='clear'
 alias rm='trash' # Safer 'rm'
-alias copy='wl-copy <' # Wayland copy
+alias copy='wl-copy' # Wayland copy
+alias paste='wl-paste' # Wayland paste
 alias shutdown='~/.local/bin/update-and-shutdown.sh'
 alias restart='~/.local/bin/update-and-restart.sh'
 alias neofetch='fastfetch'
