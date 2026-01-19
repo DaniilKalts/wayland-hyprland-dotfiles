@@ -33,12 +33,17 @@ return {
 				"gopls",
 				"clangd",
 				"eslint",
+				"jdtls",
 			}
 
 			require("mason-lspconfig").setup({
 				ensure_installed = servers,
 				automatic_installation = true,
 			})
+
+			-- Add Mason bin to PATH to ensure servers are found (especially jdtls)
+			local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
+			vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
 
 			-- Configure global defaults for all LSP servers (Neovim 0.11+)
 			vim.lsp.config("*", {
