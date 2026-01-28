@@ -1,10 +1,10 @@
 [core]
 	editor = nvim
 	autocrlf = input
-  pager = delta
+	pager = delta
 [delta]
-  syntax-theme = Dracula
-  features = side-by-side line-numbers decorations
+	syntax-theme = Dracula
+	features = side-by-side line-numbers decorations
 [color]
 	ui = auto
 [init]
@@ -12,6 +12,8 @@
 [push]
 	autoSetupRemote = true
 [include]
-  path = ~/.gitconfig.local
+	path = ~/.gitconfig.local
 [merge]
 	conflictstyle = diff3
+[url "git@github.com:"]
+	insteadOf = https://github.com/
