@@ -195,6 +195,16 @@ alias pfetch='neofetch --config ~/.local/bin/fetches/penguinfetch.conf'
 alias glg="g log --graph --decorate --all --abbrev-commit --date=relative --color --pretty=format:'%C(bold yellow)%h%C(reset) %C(green)%ar%C(reset) %C(bold blue)%d%C(reset)%n  %s %C(dim white)– %an%C(reset)'"
 alias glom="g log --format=%s"
 
+# --> Java Utility (requires java and javac to be installed !!!!)
+jc() {
+    # 1. Strip .java or .class if present to get the base name
+    local base="${1%.*}"
+    
+    # 2. Compile the .java file
+    # 3. If successful, run the class using the base name
+    javac "$base.java" && java "$base"
+}
+
 # --> Tool Aliases
 alias bcat='bat'
 alias ls='eza --color=auto --group-directories-first'

@@ -3,7 +3,6 @@
   "position": "top",
   "spacing": 4,
   "exclusive": true,
-  "gtk-layer-shell": true,
   "passthrough": false,
   "fixed-center": true,
   "start_hidden": false,
@@ -20,6 +19,7 @@
     "pulseaudio",
     "network",
     "battery",
+    "custom/notification",
     "custom/power"
   ],
   "hyprland/workspaces": {
@@ -102,6 +102,25 @@
       "critical": 15
     },
     "tooltip-format": "{timeTo}"
+  },
+  "custom/notification": {
+    "tooltip": false,
+    "format": "{icon}",
+    "format-icons": {
+      "notification": "<span foreground='red'><sup></sup></span>",
+      "none": "",
+      "dnd-notification": "<span foreground='red'><sup></sup></span>",
+      "dnd-none": "",
+      "inhibited-notification": "<span foreground='red'><sup></sup></span>",
+      "inhibited-none": "",
+      "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
+      "dnd-inhibited-none": ""
+    },
+    "return-type": "json",
+    "exec-if": "which dunstctl",
+    "exec": "~/.local/bin/dunst-notification.sh",
+    "on-click": "dunstctl set-paused toggle",
+    "interval": 1
   },
   "custom/power": {
     "tooltip": false,

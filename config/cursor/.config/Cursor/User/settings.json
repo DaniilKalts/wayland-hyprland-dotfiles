@@ -27,4 +27,5 @@
     "plaintext"
   ],
   "geminicodeassist.inlineSuggestions.enableAuto": false,
+  "workbench.activityBar.orientation": "vertical",
 }
