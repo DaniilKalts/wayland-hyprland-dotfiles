@@ -9,6 +9,8 @@
   // EDITOR SETTINGS
   // ============================================================================
   "files.autoSave": "afterDelay",
+  "editor.lineNumbers": "relative",
+  "editor.fontFamily": "'JetBrainsMono Nerd Font', 'Droid Sans Mono', 'monospace', 'monospace', 'Droid Sans Fallback', 'Noto Color Emoji'",
 
   // ============================================================================
   // VIM EXTENSION SETTINGS
@@ -19,6 +21,7 @@
     "<C-h>": false,
     "<C-l>": false
   },
+  "vim.relativeNumbering": true,
 
   // ============================================================================
   // CURSOR AI SETTINGS
