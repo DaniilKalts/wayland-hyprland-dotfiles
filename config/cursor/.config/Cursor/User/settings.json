@@ -29,6 +29,10 @@
   "cursor.cpp.disabledLanguages": [
     "plaintext"
   ],
-  "geminicodeassist.inlineSuggestions.enableAuto": false,
+  "geminicodeassist.inlineSuggestions.enableAuto": true,
   "workbench.activityBar.orientation": "vertical",
+  "geminicodeassist.project": "midyear-exchanger-tzv0r",
+  "workbench.editorAssociations": {
+    "*.docx": "default"
+  },
 }
