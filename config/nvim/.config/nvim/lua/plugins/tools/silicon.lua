@@ -20,7 +20,7 @@ return {
       theme = "Dracula",
       background = "#21222C",
       output = function()
-        return "~/Pictures/screenshots/code_" .. os.date("%Y-%m-%d_%H-%M-%S") .. ".png"
+        return "~/pictures/screenshots/code_" .. os.date("%Y-%m-%d_%H-%M-%S") .. ".png"
       end,
       window_title = function()
         return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf()), ":t")

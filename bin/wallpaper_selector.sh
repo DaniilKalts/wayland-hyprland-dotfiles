@@ -30,7 +30,7 @@ for cmd in magick swaybg wofi notify-send; do
 done
 
 # Configuration
-WALL_DIR="$HOME/wallpapers"
+WALL_DIR="$HOME/pictures/wallpapers"
 CACHE_DIR="$HOME/.cache/wallpapers"
 CURRENT_WALL="$HOME/.cache/current_wallpaper"
 

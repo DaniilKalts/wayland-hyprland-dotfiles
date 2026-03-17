@@ -9,7 +9,7 @@ fullscreen = false
 early-exit = false
 
 # Default save location for screenshots
-output-filename = "~/Pictures/screenshots/screenshot-%Y%m%d-%H%M%S.png"
+output-filename = "~/pictures/screenshots/screenshot-%Y%m%d-%H%M%S.png"
 
 # Copy command (for Wayland clipboard)
 copy-command = "wl-copy"

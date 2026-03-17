@@ -5,7 +5,7 @@
 # └───────────────────────────────────────────────────────────────────────────┘
 # Watches for new screenshots and sends notifications immediately
 
-SCREENSHOT_DIR="$HOME/Pictures/screenshots"
+SCREENSHOT_DIR="$HOME/pictures/screenshots"
 WATCH_FILE="/tmp/screenshot-watcher.pid"
 
 # Check if already running
@@ -46,7 +46,7 @@ while true; do
                        -u normal \
                        -i "$file" \
                        "Screenshot saved in" \
-                       "~/Pictures/screenshots/"
+                       "~/pictures/screenshots/"
         fi
     done
 

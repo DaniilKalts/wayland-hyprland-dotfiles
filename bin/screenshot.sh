@@ -10,7 +10,7 @@
 
 MODE="${1:-region}"
 TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
-SCREENSHOT_DIR="$HOME/Pictures/screenshots"
+SCREENSHOT_DIR="$HOME/pictures/screenshots"
 
 # Create screenshots directory if it doesn't exist
 mkdir -p "$SCREENSHOT_DIR"

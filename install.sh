@@ -386,7 +386,7 @@ chmod +x "$HOME/.local/bin"/* 2>/dev/null || true
 success "Scripts copied!"
 
 step "Copying wallpapers..."
-copy_dir_contents "$SCRIPT_DIR/wallpapers" "$HOME/wallpapers" "Wallpapers"
+copy_dir_contents "$SCRIPT_DIR/wallpapers" "$HOME/pictures/wallpapers" "Wallpapers"
 success "Wallpapers copied!"
 
 # ----------------------------------------------------------------------------
