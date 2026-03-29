@@ -30,6 +30,12 @@ case "$MODE" in
         # Fullscreen screenshot saved directly to file
         FILENAME="${SCREENSHOT_DIR}/screenshot-${TIMESTAMP}.png"
         grim -l 0 "$FILENAME"
+
+        notify-send -a "screenshot" \
+                   -u normal \
+                   -i "$FILENAME" \
+                   "Screenshot Saved" \
+                   "~/pictures/screenshots/screenshot-${TIMESTAMP}.png"
         ;;
 
     region-save)
@@ -40,6 +46,12 @@ case "$MODE" in
         if [ -n "$GEOMETRY" ]; then
             FILENAME="${SCREENSHOT_DIR}/screenshot-${TIMESTAMP}.png"
             grim -l 0 -g "$GEOMETRY" "$FILENAME"
+
+            notify-send -a "screenshot" \
+                       -u normal \
+                       -i "$FILENAME" \
+                       "Screenshot Saved" \
+                       "~/pictures/screenshots/screenshot-${TIMESTAMP}.png"
         fi
         ;;
 
