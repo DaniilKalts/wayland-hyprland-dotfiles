@@ -15,7 +15,5 @@
 	path = ~/.gitconfig.local
 [merge]
 	conflictstyle = diff3
-[url "git@github.com:"]
-	insteadOf = https://github.com/
 [safe]
 	directory = /home/gopher/projects/DaniilKalts

@@ -16,6 +16,24 @@ return {
 		config = function()
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
+			local function useful_code_actions()
+				vim.lsp.buf.code_action({
+					apply = true,
+					context = {
+						only = {
+							"quickfix",
+							"refactor",
+							"source.fixAll",
+							"source.organizeImports",
+						},
+					},
+				})
+			end
+
+			local function all_code_actions()
+				vim.lsp.buf.code_action({ apply = true })
+			end
+
 			-- Disable semantic tokens in capabilities (use Tree-sitter only)
 			capabilities.textDocument.semanticTokens = nil
 
@@ -87,7 +105,8 @@ return {
 					vim.keymap.set("n", "<leader>i", vim.lsp.buf.hover, opts)
 					vim.keymap.set("n", "<leader>d", vim.lsp.buf.definition, opts)
 					vim.keymap.set("n", "<leader>rf", vim.lsp.buf.references, opts)
-					vim.keymap.set("n", "<leader>a", vim.lsp.buf.code_action, opts)
+					vim.keymap.set("n", "<leader>a", useful_code_actions, opts)
+					vim.keymap.set("n", "<leader>A", all_code_actions, opts)
 					vim.keymap.set("n", "<leader>r", vim.lsp.buf.rename, opts)
 
 					-- Auto-format on save

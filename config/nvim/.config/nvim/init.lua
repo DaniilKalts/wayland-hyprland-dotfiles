@@ -42,7 +42,6 @@ require("lazy").setup({
 	require("plugins.tools.project"),
 	require("plugins.tools.silicon"),
 	require("plugins.tools.todo-comments"),
-	require("plugins.tools.wakatime"),
 }, {
 	-- Git configuration for lazy.nvim
 	git = {
