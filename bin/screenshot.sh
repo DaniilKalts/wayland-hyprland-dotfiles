@@ -15,10 +15,35 @@ SCREENSHOT_DIR="$HOME/pictures/screenshots"
 # Create screenshots directory if it doesn't exist
 mkdir -p "$SCREENSHOT_DIR"
 
+# Return the name of the monitor currently focused in Hyprland.
+active_monitor_name() {
+    local hyprctl_args=()
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        hyprctl_args=(-i "$HYPRLAND_INSTANCE_SIGNATURE")
+    fi
+
+    hyprctl "${hyprctl_args[@]}" monitors -j 2>/dev/null \
+        | jq -er '([.[] | select(.focused == true)] | first) | select(type == "object") | .name' \
+        2>/dev/null
+}
+
+grim_active_monitor() {
+    local monitor
+
+    monitor="$(active_monitor_name)"
+    if [ -z "$monitor" ]; then
+        notify-send -u critical "Screenshot failed" \
+            "Could not determine the focused monitor. No screenshot was taken."
+        return 1
+    fi
+
+    grim -o "$monitor" -l 0 "$@"
+}
+
 case "$MODE" in
     fullscreen)
         # Fullscreen screenshot with satty annotation
-        grim -l 0 - | satty --filename -
+        grim_active_monitor - | satty --filename -
         ;;
 
     region)
@@ -29,7 +54,9 @@ case "$MODE" in
     fullscreen-save)
         # Fullscreen screenshot saved directly to file
         FILENAME="${SCREENSHOT_DIR}/screenshot-${TIMESTAMP}.png"
-        grim -l 0 "$FILENAME"
+        if ! grim_active_monitor "$FILENAME"; then
+            exit 1
+        fi
 
         notify-send -a "screenshot" \
                    -u normal \
@@ -58,7 +85,9 @@ case "$MODE" in
     fullscreen-copy)
         # Fullscreen screenshot directly to clipboard with notification
         TEMP_FILE="/tmp/screenshot-${TIMESTAMP}.png"
-        grim -l 0 "$TEMP_FILE"
+        if ! grim_active_monitor "$TEMP_FILE"; then
+            exit 1
+        fi
 
         # Copy to clipboard
         wl-copy < "$TEMP_FILE"
