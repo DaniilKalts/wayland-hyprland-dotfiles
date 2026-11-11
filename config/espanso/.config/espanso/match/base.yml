@@ -1,0 +1,16 @@
+matches:
+  - trigger: ":test"
+    vars:
+      - name: clipboard
+        type: clipboard
+    replace: |-
+      Answer the test below. Solve each question, then double-check every answer. For questions with multiple correct options, verify that you included all correct options and no incorrect ones.
+
+      Return only one line per question:
+      Q1-O2
+      Q2-O1,O3
+
+      Test:
+      ```
+      {{clipboard}}
+      ```
