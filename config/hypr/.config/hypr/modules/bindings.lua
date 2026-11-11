@@ -168,7 +168,7 @@ hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), {
     mouse = true,
 })
 
-for workspace = 1, 7 do
+for workspace = 1, 9 do
     local key = tostring(workspace)
     hl.bind(mod .. " + " .. key, hl.dsp.focus({
         workspace = workspace,
@@ -194,6 +194,7 @@ local function execBind(keys, command, options)
 end
 
 execBind(mod .. " + Return", "kitty --directory ~")
+execBind(mod .. " + O", "kitty --directory ~")
 execBind(mod .. " + Escape", "hyprlock")
 hl.bind(mod .. " + ALT + Q", hl.dsp.exit())
 execBind(mod .. " + M", "kitty --directory ~ btop")
