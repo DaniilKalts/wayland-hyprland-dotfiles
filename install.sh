@@ -202,11 +202,34 @@ fi
 
 header "4/16 - Installing AUR Packages"
 
-AUR_PACKAGES=(hyprpicker hyprlock hypridle cava yazi dracula-cursors-git dracula-gtk-theme)
+AUR_PACKAGES=(hyprpicker hyprlock hypridle cava yazi dracula-cursors-git dracula-gtk-theme espanso-wayland)
 
 step "Installing ${#AUR_PACKAGES[@]} AUR packages..."
 yay -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 success "AUR packages installed!"
+
+# ----------------------------------------------------------------------------
+# 4.2. Setup Espanso (Wayland text expander)
+# ----------------------------------------------------------------------------
+
+header "4.2/16 - Setting Up Espanso"
+
+# espanso reads keyboard input from /dev/input, which requires the 'input' group
+if ! id -nG "$USER" | tr ' ' '\n' | grep -qx input; then
+    step "Adding $USER to the input group..."
+    sudo usermod -aG input "$USER"
+    warn "Log out and back in for the input group to take effect."
+fi
+
+# Grant the espanso binary the capability it needs to read input devices
+step "Setting capabilities on espanso..."
+sudo setcap cap_dac_override+p "$(readlink -f "$(command -v espanso)")"
+
+# Run espanso as a user service and start it
+step "Registering espanso service..."
+espanso service register || warn "espanso service already registered"
+espanso start || warn "espanso is already running"
+success "Espanso set up!"
 
 # ----------------------------------------------------------------------------
 # 4.1. Activate Dracula GTK Theme & Icons
