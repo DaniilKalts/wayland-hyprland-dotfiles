@@ -400,3 +400,7 @@ ZSH_HIGHLIGHT_STYLES[redirection]='fg=#F8F8F2'
 ZSH_HIGHLIGHT_STYLES[arg0]='fg=#F8F8F2'
 ZSH_HIGHLIGHT_STYLES[default]='fg=#F8F8F2'
 export PATH="$HOME/.cargo/bin:$PATH"
+
+# Terminal tools: 'learn-tools' and 'tools' show the lists
+alias learn-tools='~/.local/bin/learn-tools.sh'
+alias tools='~/.local/bin/tools.sh'
