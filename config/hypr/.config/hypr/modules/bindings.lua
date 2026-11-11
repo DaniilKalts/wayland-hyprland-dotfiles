@@ -220,7 +220,7 @@ execBind("ALT + E", "~/.local/bin/open-url.sh https://chat.openai.com/")
 execBind("ALT + X", "~/.local/bin/open-url.sh https://excalidraw.com/")
 execBind("ALT + L", "~/.local/bin/open-url.sh https://leetcode.com/")
 execBind("ALT + Q", "~/.local/bin/open-url.sh https://monkeytype.com/")
-execBind("ALT + C", "cursor")
+execBind("ALT + C", "kitty --directory ~ claude")
 execBind("ALT + P", "~/.local/bin/color-picker.sh")
 
 execBind(mod .. " + P", "~/.local/bin/screenshot.sh fullscreen-save")
