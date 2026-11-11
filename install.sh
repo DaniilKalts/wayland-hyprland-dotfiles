@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 # ╔═══════════════════════════════════════════════════════════════════════════╗
 # ║  ██╗  ██╗██╗   ██╗██████╗ ██████╗ ██╗      █████╗ ███╗   ██╗██████╗       ║
@@ -13,9 +13,6 @@ set -e
 # ║                         Author: Daniil Kalts                              ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
-# Prevent running as root
-[[ "${EUID:-$(id -u)}" -eq 0 ]] && echo "Do not run as root!" && exit 1
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ----------------------------------------------------------------------------
@@ -25,9 +22,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[0;33m'
 BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' NC='\033[0m'
 
+STEP=0
+TOTAL=17
+
 header() {
+    STEP=$((STEP + 1))
     echo -e "\n${PURPLE}══════════════════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}  $1${NC}"
+    echo -e "${CYAN}  ${STEP}/${TOTAL} - $1${NC}"
     echo -e "${PURPLE}══════════════════════════════════════════════════════════════════════════════${NC}\n"
 }
 
@@ -35,62 +36,47 @@ step()    { echo -e "${BLUE}[*]${NC} $1"; }
 success() { echo -e "${GREEN}[✓]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 err()     { echo -e "${RED}[✗]${NC} $1"; }
+die()     { err "$1"; exit 1; }
 
-die() { err "$1"; exit 1; }
-
-# Backup file/dir if it exists and is not a symlink
+# Backup file/dir if it exists and is not a symlink; remove stale symlinks
 backup() {
     local target="$1"
-    if [[ -e "$target" && ! -L "$target" ]]; then
+    if [[ -L "$target" ]]; then
+        rm -f "$target"
+    elif [[ -e "$target" ]]; then
         warn "Backing up $target"
         mv "$target" "$target.bak.$(date +%s)"
-    elif [[ -L "$target" ]]; then
-        rm -f "$target"
     fi
 }
 
-# Clone repo if directory doesn't exist
 clone_if_missing() {
     local url="$1" dest="$2" name="$3"
     if [[ -d "$dest" ]]; then
         warn "$name already installed, skipping..."
         return 0
     fi
-
     step "Installing $name..."
-    git clone "$url" "$dest"
+    git clone --depth 1 "$url" "$dest"
     success "$name installed!"
-}
-
-require_cmd() {
-    command -v "$1" &>/dev/null || die "Missing required command: $1"
-}
-
-ensure_dir() {
-    mkdir -p "$1"
 }
 
 copy_dir_contents() {
     local src="$1" dst="$2" what="$3"
-
-    if [[ ! -d "$src" ]]; then
-        warn "$what source folder not found: $src (skipping)"
+    if [[ ! -d "$src" || -z "$(ls -A "$src")" ]]; then
+        warn "$what folder missing or empty: $src (skipping)"
         return 0
     fi
-
-    # Copy only if there is at least one entry
-    if ! ls -A "$src" &>/dev/null; then
-        warn "$what folder is empty: $src (skipping)"
-        return 0
-    fi
-
-    ensure_dir "$dst"
-    cp -r "$src/"* "$dst/"
+    mkdir -p "$dst"
+    cp -r "$src/." "$dst/"
 }
 
 # ----------------------------------------------------------------------------
-# Welcome
+# Preflight
 # ----------------------------------------------------------------------------
+
+[[ "${EUID:-$(id -u)}" -eq 0 ]] && die "Do not run as root!"
+[[ -f /etc/arch-release ]] || die "This installer only supports Arch Linux."
+command -v sudo &>/dev/null || die "sudo is required."
 
 clear
 echo -e "${PURPLE}"
@@ -107,218 +93,279 @@ EOF
 echo -e "${NC}"
 echo -e "${CYAN}Welcome to the Hyprland Rice Installer!${NC}"
 echo -e "${YELLOW}This will install and configure your Wayland/Hyprland setup.${NC}\n"
-read -p "Press Enter to continue or Ctrl+C to cancel..."
+read -rp "Press Enter to continue or Ctrl+C to cancel..."
+
+# Ask for the sudo password once and keep it alive for the whole run
+sudo -v
+while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
+SUDO_KEEPALIVE_PID=$!
+trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 
 # ----------------------------------------------------------------------------
-# 1. System Update
+# System Update
 # ----------------------------------------------------------------------------
 
-header "1/16 - Updating System"
-step "Updating package database..."
-sudo pacman -Syu --noconfirm
+header "Updating System"
+
+# multilib is needed for wine and 32-bit drivers
+if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+    step "Enabling multilib repository..."
+    sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+fi
+
+sudo pacman -Syu --needed --noconfirm base-devel git
 success "System updated!"
 
 # ----------------------------------------------------------------------------
-# 2. Install Yay
+# Yay (AUR Helper)
 # ----------------------------------------------------------------------------
 
-header "2/16 - Installing Yay (AUR Helper)"
+header "Installing Yay (AUR Helper)"
 if command -v yay &>/dev/null; then
     warn "Yay already installed, skipping..."
 else
-    step "Installing dependencies..."
-    sudo pacman -S --needed --noconfirm base-devel git
-
-    step "Building yay..."
-    local_tmp="/tmp/yay-git"
-    rm -rf "$local_tmp"
-    git clone https://aur.archlinux.org/yay-git.git "$local_tmp"
-    (cd "$local_tmp" && makepkg -si --noconfirm)
-    rm -rf "$local_tmp"
+    YAY_TMP="$(mktemp -d)"
+    git clone https://aur.archlinux.org/yay-bin.git "$YAY_TMP"
+    (cd "$YAY_TMP" && makepkg -si --noconfirm)
+    rm -rf "$YAY_TMP"
     success "Yay installed!"
 fi
 
 # ----------------------------------------------------------------------------
-# 3. Install Pacman Packages
+# Pacman Packages
 # ----------------------------------------------------------------------------
 
-header "3/16 - Installing Pacman Packages"
+header "Installing Pacman Packages"
+
+# Packages are grouped by the same categories in the pacman, AUR and snap lists
 
 PACMAN_PACKAGES=(
-    # Hyprland & Wayland
-    hyprland waybar dunst swaybg wofi wl-clipboard cliphist
+    # Desktop: Hyprland & Wayland
+    hyprland hyprlock hypridle hyprpicker
+    waybar dunst swaybg wofi wl-clipboard cliphist libnotify
     polkit-gnome xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
+    xdg-user-dirs xdg-utils qt5-wayland qt6-wayland qt6ct
 
-    # Terminal & Dev Tools
-    kitty neovim git stow ripgrep fzf bat jq
-
-    # File Management
-    thunar zip unzip wget
+    # Drivers: AMD iGPU + NVIDIA dGPU
+    mesa vulkan-radeon lib32-vulkan-radeon
+    nvidia-open-dkms nvidia-utils lib32-nvidia-utils linux-headers
 
     # Audio
-    pipewire pipewire-pulse wireplumber pavucontrol playerctl
+    pipewire pipewire-pulse pipewire-alsa wireplumber
+    pavucontrol playerctl alsa-utils
 
-    # Screenshots & Media
-    grim slurp satty imagemagick obs-studio brightnessctl
+    # Network & Bluetooth
+    networkmanager bluez bluez-utils blueman bluetui nmap nload
 
-    # Applications
-    telegram-desktop obsidian zathura zathura-pdf-mupdf
+    # Terminal & Shell
+    kitty zsh tmux stow
 
-    # System Utilities
-    btop fastfetch tmux zsh eza trash-cli libnotify qt5-wayland qt6-wayland
+    # Editors
+    neovim vim nano
+
+    # CLI Tools
+    ripgrep fd fzf bat eza zoxide jq trash-cli psmisc
+    tldr rsync tree unzip zip 7zip wget curl
+    chafa glow tokei go-task
+
+    # Git
+    git-delta github-cli git-filter-repo tig
+
+    # Development: languages & build tools (also used by Neovim Mason)
+    nodejs npm pnpm python python-pip go rustup jdk-openjdk
+    tree-sitter-cli cmake opencode
+
+    # Containers
+    docker docker-compose docker-buildx lazydocker dive kubectl
+
+    # Databases
+    postgresql dbeaver
+
+    # Virtualization
+    qemu-full libvirt virt-manager edk2-ovmf swtpm dnsmasq wine winetricks
+
+    # System Monitoring & Hardware
+    btop htop fastfetch inxi ncdu dust lsof acpi brightnessctl gparted openrgb
+
+    # Pacman Maintenance
+    reflector pacman-contrib flatpak
+
+    # File Management
+    thunar gvfs tumbler yazi ffmpegthumbnailer poppler resvg
+
+    # Screenshots & Images
+    grim slurp satty imagemagick silicon flameshot gpick viewnior feh
+
+    # Media
+    obs-studio vlc cava
+
+    # Browsers & Internet
+    firefox-developer-edition torbrowser-launcher tor qbittorrent
+
+    # Apps
+    telegram-desktop obsidian libreoffice-still zathura zathura-pdf-mupdf
+
+    # Fun
+    cmatrix cowsay figlet lolcat toilet sl
 
     # Fonts & Icons
-    noto-fonts-emoji papirus-icon-theme otf-font-awesome ttf-nerd-fonts-symbols-mono
+    ttf-jetbrains-mono-nerd ttf-nerd-fonts-symbols-mono noto-fonts noto-fonts-emoji
+    otf-font-awesome papirus-icon-theme
 )
 
 step "Installing ${#PACMAN_PACKAGES[@]} packages..."
 sudo pacman -S --needed --noconfirm "${PACMAN_PACKAGES[@]}"
 success "Pacman packages installed!"
 
-# ----------------------------------------------------------------------------
-# 3.1 Install lazy.nvim
-# ----------------------------------------------------------------------------
-
-header "3.1/16 - Installing lazy.nvim"
-
-LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.nvim"
-ensure_dir "$(dirname "$LAZY_DIR")"
-
-if [[ -d "$LAZY_DIR" ]]; then
-    warn "Existing lazy.nvim found. Removing for clean install..."
-    rm -rf "$LAZY_DIR"
-fi
-
-step "Cloning lazy.nvim..."
-if git clone --filter=blob:none --branch=stable https://github.com/folke/lazy.nvim.git "$LAZY_DIR"; then
-    success "lazy.nvim installed!"
-else
-    die "Failed to clone lazy.nvim. Please check your internet connection or git installation."
+# rustup installs no toolchain by default; cargo is needed by zshrc and Mason
+if ! rustup toolchain list 2>/dev/null | grep -q stable; then
+    step "Installing stable Rust toolchain..."
+    rustup default stable
 fi
 
 # ----------------------------------------------------------------------------
-# 4. Install AUR Packages
+# AUR Packages
 # ----------------------------------------------------------------------------
 
-header "4/16 - Installing AUR Packages"
+header "Installing AUR Packages"
 
-AUR_PACKAGES=(hyprpicker hyprlock hypridle cava yazi dracula-cursors-git dracula-gtk-theme espanso-wayland)
+AUR_PACKAGES=(
+    # Desktop: Hyprland & Wayland
+    espanso-wayland waypaper
+
+    # Editors
+    cursor-bin visual-studio-code-bin
+
+    # Development: API clients
+    postman-bin insomnia
+
+    # System Monitoring & Hardware
+    ps_mem
+
+    # Pacman Maintenance
+    snapd debtap
+
+    # Browsers & Internet
+    google-chrome localsend-bin
+
+    # Fun
+    tty-clock neofetch
+
+    # Theme
+    dracula-gtk-theme dracula-cursors-git
+)
+
+SNAP_PACKAGES=(
+    # Editors
+    goland
+
+    # Git
+    gitkraken
+
+    # Databases
+    pgadmin4
+)
 
 step "Installing ${#AUR_PACKAGES[@]} AUR packages..."
 yay -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 success "AUR packages installed!"
 
 # ----------------------------------------------------------------------------
-# 4.2. Setup Espanso (Wayland text expander)
+# Flatpak & Snap
 # ----------------------------------------------------------------------------
 
-header "4.2/16 - Setting Up Espanso"
+header "Setting Up Flatpak & Snap"
 
-# espanso reads keyboard input from /dev/input, which requires the 'input' group
-if ! id -nG "$USER" | tr ' ' '\n' | grep -qx input; then
-    step "Adding $USER to the input group..."
-    sudo usermod -aG input "$USER"
-    warn "Log out and back in for the input group to take effect."
+step "Adding Flathub remote..."
+sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+success "Flatpak ready!"
+
+step "Enabling snapd..."
+sudo systemctl enable --now snapd.socket
+# Classic snaps expect /snap
+[[ -e /snap ]] || sudo ln -s /var/lib/snapd/snap /snap
+success "Snap ready!"
+
+step "Installing snap apps..."
+sudo snap wait system seed.loaded
+for app in "${SNAP_PACKAGES[@]}"; do
+    sudo snap install "$app" --classic 2>/dev/null || sudo snap install "$app" \
+        || warn "Failed to install $app (snap)"
+done
+success "Snap apps installed!"
+
+# ----------------------------------------------------------------------------
+# System Services
+# ----------------------------------------------------------------------------
+
+header "Enabling System Services"
+
+sudo systemctl enable --now NetworkManager.service bluetooth.service docker.service libvirtd.service
+
+# Weekly: refresh to the fastest mirrors, and trim the package cache
+sudo systemctl enable reflector.timer paccache.timer
+
+# PostgreSQL needs its data directory initialized once
+if [[ -z "$(sudo ls -A /var/lib/postgres/data 2>/dev/null)" ]]; then
+    step "Initializing PostgreSQL..."
+    sudo -iu postgres initdb -D /var/lib/postgres/data
 fi
+sudo systemctl enable --now postgresql.service
 
-# Grant the espanso binary the capability it needs to read input devices
-step "Setting capabilities on espanso..."
-sudo setcap cap_dac_override+p "$(readlink -f "$(command -v espanso)")"
-
-# Run espanso as a user service and start it
-step "Registering espanso service..."
-espanso service register || warn "espanso service already registered"
-espanso start || warn "espanso is already running"
-success "Espanso set up!"
+# Use docker and VMs without sudo
+sudo usermod -aG docker,libvirt "$USER"
+success "Services enabled: NetworkManager, bluetooth, docker, libvirtd, postgresql"
 
 # ----------------------------------------------------------------------------
-# 4.1. Activate Dracula GTK Theme & Icons
+# Home Directories
 # ----------------------------------------------------------------------------
 
-header "4.1/16 - Activating Dracula GTK Theme & Icons"
+header "Creating Home Directories"
 
-ICON_DIR="$HOME/.icons"
-if [[ -d "$ICON_DIR/Dracula" ]]; then
-    warn "Dracula icons already installed, skipping..."
-else
-    step "Downloading Dracula icon theme..."
-    TEMP_DIR="$(mktemp -d)"
-    curl -fsSL -o "$TEMP_DIR/Dracula-icons.zip" \
-        "https://github.com/dracula/gtk/files/5214870/Dracula.zip"
+HOME_DIRS=(documents downloads pictures programs projects recordings)
+for dir in "${HOME_DIRS[@]}"; do
+    mkdir -p "$HOME/$dir"
+done
+mkdir -p "$HOME/pictures/screenshots" "$HOME/pictures/wallpapers"
 
-    step "Extracting Dracula icons..."
-    ensure_dir "$ICON_DIR"
-    unzip -q "$TEMP_DIR/Dracula-icons.zip" -d "$ICON_DIR"
-    rm -rf "$TEMP_DIR"
+# Point XDG user dirs at the lowercase folders; unused ones fall back to $HOME
+mkdir -p "$HOME/.config"
+backup "$HOME/.config/user-dirs.dirs"
+cat > "$HOME/.config/user-dirs.dirs" << 'EOF'
+XDG_DESKTOP_DIR="$HOME"
+XDG_DOCUMENTS_DIR="$HOME/documents"
+XDG_DOWNLOAD_DIR="$HOME/downloads"
+XDG_MUSIC_DIR="$HOME"
+XDG_PICTURES_DIR="$HOME/pictures"
+XDG_PUBLICSHARE_DIR="$HOME"
+XDG_TEMPLATES_DIR="$HOME"
+XDG_VIDEOS_DIR="$HOME/recordings"
+EOF
 
-    step "Updating icon cache..."
-    if command -v gtk-update-icon-cache &>/dev/null; then
-        gtk-update-icon-cache -f -t "$ICON_DIR/Dracula" 2>/dev/null || true
-    fi
-    success "Dracula icons installed!"
-fi
-
-# Apply theme via gsettings (required for Wayland - settings.ini is ignored!)
-step "Applying Dracula theme via gsettings (required for Wayland)..."
-gsettings set org.gnome.desktop.interface gtk-theme 'Dracula'
-gsettings set org.gnome.desktop.interface icon-theme 'Dracula'
-gsettings set org.gnome.desktop.interface cursor-theme 'Dracula-cursors'
-gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-success "gsettings configured!"
-
-# Also set cursor size
-gsettings set org.gnome.desktop.interface cursor-size 24
-success "Dracula GTK theme & icons activated!"
+# Stop xdg-user-dirs-update from recreating Desktop, Music, etc.
+backup "$HOME/.config/user-dirs.conf"
+echo "enabled=False" > "$HOME/.config/user-dirs.conf"
+success "Home directories created: ${HOME_DIRS[*]}"
 
 # ----------------------------------------------------------------------------
-# 5. Install Nerd Fonts
+# ZSH
 # ----------------------------------------------------------------------------
 
-header "5/16 - Installing Nerd Fonts"
+header "Setting Up ZSH"
 
-FONT_DIR="$HOME/.local/share/fonts"
-ensure_dir "$FONT_DIR"
-
-if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
-    warn "JetBrainsMono Nerd Font already installed, skipping..."
-else
-    step "Downloading JetBrainsMono Nerd Font..."
-    TEMP_DIR="$(mktemp -d)"
-    curl -fsSL -o "$TEMP_DIR/JetBrainsMono.tar.xz" \
-        "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
-
-    step "Extracting font..."
-    ensure_dir "$FONT_DIR/JetBrainsMono"
-    tar -xf "$TEMP_DIR/JetBrainsMono.tar.xz" -C "$FONT_DIR/JetBrainsMono"
-    rm -rf "$TEMP_DIR"
-    success "JetBrainsMono Nerd Font installed!"
-fi
-
-step "Refreshing font cache..."
-fc-cache -fv >/dev/null 2>&1
-success "Font cache refreshed!"
-
-# ----------------------------------------------------------------------------
-# 6. Setup ZSH
-# ----------------------------------------------------------------------------
-
-header "6/16 - Setting Up ZSH"
-
-# Oh My Zsh
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
     warn "Oh My Zsh already installed, skipping..."
 else
     step "Installing Oh My Zsh..."
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c \
+        "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     success "Oh My Zsh installed!"
 fi
 
-# Powerlevel10k
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 clone_if_missing "https://github.com/romkatv/powerlevel10k.git" \
     "$ZSH_CUSTOM/themes/powerlevel10k" "Powerlevel10k"
 
-# ZSH Plugins
 ZSH_PLUGINS=(
     "zsh-users/zsh-syntax-highlighting"
     "zsh-users/zsh-autosuggestions"
@@ -329,12 +376,11 @@ ZSH_PLUGINS=(
 
 for plugin in "${ZSH_PLUGINS[@]}"; do
     repo="${plugin%%:*}"
-    name="${plugin##*/}"; name="${name%%:*}"
+    name="${repo##*/}"
     [[ "$plugin" == *:* ]] && name="${plugin##*:}"
     clone_if_missing "https://github.com/$repo.git" "$ZSH_CUSTOM/plugins/$name" "$name"
 done
 
-# Set ZSH as default shell
 ZSH_PATH="$(command -v zsh)"
 if [[ "$(getent passwd "$USER" | cut -d: -f7)" != "$ZSH_PATH" ]]; then
     step "Setting ZSH as default shell..."
@@ -345,353 +391,218 @@ else
 fi
 
 # ----------------------------------------------------------------------------
-# 7. Stow Dotfiles
+# Stow Dotfiles
 # ----------------------------------------------------------------------------
 
-header "7/16 - Stowing Dotfiles"
+header "Stowing Dotfiles"
 
-# Stow config files
+# Stow every package in a folder, backing up only real files that would conflict
+stow_all() {
+    local base="$1" pkg name file target
+    for pkg in "$base"/*/; do
+        name="$(basename "$pkg")"
+        step "  Stowing $name..."
+        while IFS= read -r file; do
+            target="$HOME/${file#./}"
+            [[ -e "$target" && ! -L "$target" ]] && backup "$target"
+        done < <(cd "$pkg" && find . -type f)
+        stow --restow -t "$HOME" -d "$base" "$name" || warn "  $name may have conflicts"
+    done
+}
+
 step "Stowing config files..."
-if [[ -d "$SCRIPT_DIR/config" ]]; then
-    for dir in "$SCRIPT_DIR/config"/*/; do
-        name="$(basename "$dir")"
-        step "  Stowing $name..."
-        backup "$HOME/.config/$name"
-        [[ "$name" == "hypr" ]] && backup "$HOME/.config/hypr/hyprland.conf"
-        if [[ "$name" == "cursor" ]]; then
-            backup "$HOME/.config/Cursor/User/keybindings.json"
-            backup "$HOME/.config/Cursor/User/settings.json"
-        fi
-        stow -t "$HOME" -d "$SCRIPT_DIR/config" "$name" || warn "  $name may have conflicts"
-    done
-    success "Config files stowed!"
-else
-    warn "Config folder not found: $SCRIPT_DIR/config (skipping)"
-fi
+stow_all "$SCRIPT_DIR/config"
+success "Config files stowed!"
 
-# Stow home files
 step "Stowing home files..."
-if [[ -d "$SCRIPT_DIR/home" ]]; then
-    for dir in "$SCRIPT_DIR/home"/*/; do
-        name="$(basename "$dir")"
-        step "  Stowing $name..."
-        case "$name" in
-            zsh)  backup "$HOME/.zshrc"; backup "$HOME/.p10k.zsh" ;;
-            git)  backup "$HOME/.gitconfig" ;;
-            tmux) backup "$HOME/.tmux.conf" ;;
-        esac
-        stow -t "$HOME" -d "$SCRIPT_DIR/home" "$name" || warn "  $name may have conflicts"
-    done
-    success "Home files stowed!"
-else
-    warn "Home folder not found: $SCRIPT_DIR/home (skipping)"
-fi
+stow_all "$SCRIPT_DIR/home"
+success "Home files stowed!"
 
 # ----------------------------------------------------------------------------
-# 7.1 Install Neovim Plugins via lazy.nvim
+# Scripts & Wallpapers
 # ----------------------------------------------------------------------------
 
-header "7.1/16 - Installing Neovim Plugins"
-step "Running lazy.nvim sync to install and update Neovim plugins..."
-nvim --headless "+Lazy! sync" +qa || err "Failed to sync lazy.nvim plugins. Please open Neovim manually to complete installation."
-success "Neovim plugins synchronized!"
+header "Copying Scripts & Wallpapers"
 
-# ----------------------------------------------------------------------------
-# 8. Copy Scripts & Wallpapers
-# ----------------------------------------------------------------------------
-
-header "8/16 - Copying Scripts & Wallpapers"
-
-step "Copying scripts to ~/.local/bin..."
 copy_dir_contents "$SCRIPT_DIR/bin" "$HOME/.local/bin" "Scripts"
-find "$HOME/.local/bin" -type f -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
-chmod +x "$HOME/.local/bin"/* 2>/dev/null || true
-success "Scripts copied!"
+chmod +x "$HOME/.local/bin"/*.sh 2>/dev/null || true
+success "Scripts copied to ~/.local/bin!"
 
-step "Copying wallpapers..."
 copy_dir_contents "$SCRIPT_DIR/wallpapers" "$HOME/pictures/wallpapers" "Wallpapers"
-success "Wallpapers copied!"
+success "Wallpapers copied to ~/pictures/wallpapers!"
 
 # ----------------------------------------------------------------------------
-# 9. Setup TPM (Tmux Plugin Manager)
+# Neovim
 # ----------------------------------------------------------------------------
 
-header "9/16 - Setting Up TPM"
+header "Setting Up Neovim"
+
+clone_if_missing "https://github.com/folke/lazy.nvim.git" \
+    "$HOME/.local/share/nvim/lazy/lazy.nvim" "lazy.nvim"
+
+step "Syncing Neovim plugins..."
+nvim --headless "+Lazy! sync" +qa || warn "Plugin sync failed. Open Neovim to finish installation."
+success "Neovim ready!"
+
+# ----------------------------------------------------------------------------
+# AI Tools
+# ----------------------------------------------------------------------------
+
+header "Installing AI Tools"
+
+# Global npm packages go to ~/.npm-global (already on PATH in .zshrc)
+npm config set prefix "$HOME/.npm-global"
+export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"
+
+NPM_PACKAGES=(
+    @openai/codex
+    @google/gemini-cli
+)
+
+step "Installing ${NPM_PACKAGES[*]}..."
+npm install -g "${NPM_PACKAGES[@]}" || warn "Some npm packages failed to install"
+
+if command -v claude &>/dev/null; then
+    warn "Claude Code already installed, skipping..."
+else
+    step "Installing Claude Code..."
+    curl -fsSL https://claude.ai/install.sh | bash || warn "Claude Code install failed"
+fi
+success "AI tools installed: Claude Code, Codex, Gemini CLI"
+
+# ----------------------------------------------------------------------------
+# Tmux
+# ----------------------------------------------------------------------------
+
+header "Setting Up Tmux"
 clone_if_missing "https://github.com/tmux-plugins/tpm.git" "$HOME/.tmux/plugins/tpm" "TPM"
+"$HOME/.tmux/plugins/tpm/bin/install_plugins" >/dev/null 2>&1 \
+    || warn "Install tmux plugins manually: Ctrl+a then I"
 
 # ----------------------------------------------------------------------------
-# 10. Dracula Theme - VSCode
+# Espanso
 # ----------------------------------------------------------------------------
 
-header "10/16 - Installing Dracula for VSCode"
+header "Setting Up Espanso"
+
+# espanso reads keyboard input from /dev/input
+if ! id -nG "$USER" | tr ' ' '\n' | grep -qx input; then
+    step "Adding $USER to the input group..."
+    sudo usermod -aG input "$USER"
+fi
+
+step "Setting capabilities on espanso..."
+sudo setcap cap_dac_override+p "$(readlink -f "$(command -v espanso)")"
+
+step "Registering espanso service..."
+espanso service register || warn "espanso service already registered"
+success "Espanso ready! It starts with your next session."
+
+# ----------------------------------------------------------------------------
+# Dracula Theme: GTK, Icons, Cursor
+# ----------------------------------------------------------------------------
+
+header "Applying Dracula Theme"
+
+ICON_DIR="$HOME/.icons"
+if [[ -d "$ICON_DIR/Dracula" ]]; then
+    warn "Dracula icons already installed, skipping..."
+else
+    step "Downloading Dracula icon theme..."
+    TEMP_DIR="$(mktemp -d)"
+    curl -fsSL -o "$TEMP_DIR/Dracula-icons.zip" \
+        "https://github.com/dracula/gtk/files/5214870/Dracula.zip"
+    mkdir -p "$ICON_DIR"
+    unzip -q "$TEMP_DIR/Dracula-icons.zip" -d "$ICON_DIR"
+    rm -rf "$TEMP_DIR"
+    gtk-update-icon-cache -f -t "$ICON_DIR/Dracula" 2>/dev/null || true
+    success "Dracula icons installed!"
+fi
+
+# gsettings needs a D-Bus session; Hyprland autostart applies these anyway
+step "Applying GTK settings..."
+{
+    gsettings set org.gnome.desktop.interface gtk-theme 'Dracula'
+    gsettings set org.gnome.desktop.interface icon-theme 'Dracula'
+    gsettings set org.gnome.desktop.interface cursor-theme 'Dracula-cursors'
+    gsettings set org.gnome.desktop.interface cursor-size 24
+    gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+} 2>/dev/null && success "GTK settings applied!" \
+    || warn "No D-Bus session; Hyprland will apply GTK settings on first start."
+
+fc-cache -f >/dev/null 2>&1
+success "Font cache refreshed!"
+
+# ----------------------------------------------------------------------------
+# Dracula Theme: Apps
+# ----------------------------------------------------------------------------
+
+header "Installing Dracula for Apps"
+
+# VSCode
 if command -v code &>/dev/null; then
-    step "Installing Dracula Official extension..."
-    code --install-extension dracula-theme.theme-dracula --force 2>/dev/null || true
-
+    step "Installing Dracula for VSCode..."
+    code --install-extension dracula-theme.theme-dracula --force >/dev/null 2>&1 || true
     VSCODE_SETTINGS="$HOME/.config/Code/User/settings.json"
-    ensure_dir "$(dirname "$VSCODE_SETTINGS")"
-
-    if [[ -f "$VSCODE_SETTINGS" ]]; then
-        if ! grep -q "workbench.colorTheme" "$VSCODE_SETTINGS"; then
-            # Add theme to existing settings
-            sed -i '1a\  "workbench.colorTheme": "Dracula",' "$VSCODE_SETTINGS"
-        fi
-    else
-        echo '{ "workbench.colorTheme": "Dracula" }' > "$VSCODE_SETTINGS"
+    mkdir -p "$(dirname "$VSCODE_SETTINGS")"
+    if [[ ! -f "$VSCODE_SETTINGS" ]]; then
+        echo '{ "workbench.colorTheme": "Dracula Theme" }' > "$VSCODE_SETTINGS"
+    elif ! grep -q "workbench.colorTheme" "$VSCODE_SETTINGS"; then
+        sed -i '1a\  "workbench.colorTheme": "Dracula Theme",' "$VSCODE_SETTINGS"
     fi
-
-    success "Dracula theme installed and set for VSCode!"
-else
-    warn "VSCode not installed, skipping..."
+    success "Dracula set for VSCode!"
 fi
 
-# ----------------------------------------------------------------------------
-# 12. Dracula Theme - Telegram
-# ----------------------------------------------------------------------------
-
-header "12/16 - Installing Dracula for Telegram"
+# Telegram
 TELEGRAM_DRACULA="$HOME/.local/share/dracula-telegram"
-TELEGRAM_THEMES="$HOME/.local/share/TelegramDesktop/tdata"
+clone_if_missing "https://github.com/dracula/telegram.git" "$TELEGRAM_DRACULA" "Dracula for Telegram"
+warn "Telegram: Settings → Chat Settings → '...' → Import theme → $TELEGRAM_DRACULA/colors.tdesktop-theme"
 
-if [[ -d "$TELEGRAM_DRACULA" ]]; then
-    warn "Dracula for Telegram already downloaded, skipping..."
-else
-    step "Downloading Dracula theme for Telegram..."
-    git clone --depth 1 https://github.com/dracula/telegram.git "$TELEGRAM_DRACULA"
-    success "Dracula theme files downloaded!"
-fi
-
-if [[ -d "$TELEGRAM_THEMES" ]]; then
-    step "Copying theme to Telegram..."
-    cp "$TELEGRAM_DRACULA/colors.tdesktop-theme" "$TELEGRAM_THEMES/" 2>/dev/null || true
-    success "Theme copied! Open Telegram: Settings → Chat Settings → Choose from file"
-else
-    warn "Telegram data folder not found. To apply theme manually:"
-    warn "  1. Open Telegram → Settings → Chat Settings"
-    warn "  2. Click '...' → Create new theme → Import existing theme"
-    warn "  3. Select: $TELEGRAM_DRACULA/colors.tdesktop-theme"
-fi
-
-# ----------------------------------------------------------------------------
-# 13. Dracula Theme - LibreOffice
-# ----------------------------------------------------------------------------
-
-header "13/16 - Installing Dracula for LibreOffice"
+# LibreOffice (only if installed and run once)
 LIBREOFFICE_DRACULA="$HOME/.local/share/dracula-libreoffice"
-
-if [[ -d "$LIBREOFFICE_DRACULA" ]]; then
-    warn "Dracula for LibreOffice already downloaded, skipping..."
-else
-    step "Downloading Dracula theme for LibreOffice..."
-    git clone --depth 1 https://github.com/dracula/libreoffice.git "$LIBREOFFICE_DRACULA"
-fi
-
-LIBREOFFICE_INSTALLED=false
-for version in 4 24.2 24.8 7; do
-    LIBREOFFICE_CONFIG="$HOME/.config/libreoffice/${version}/user/config"
-    if [[ -d "$(dirname "$LIBREOFFICE_CONFIG")" ]]; then
-        step "Installing Dracula palette for LibreOffice $version..."
-        ensure_dir "$LIBREOFFICE_CONFIG"
-        cp "$LIBREOFFICE_DRACULA/dracula.soc" "$LIBREOFFICE_CONFIG/"
-        LIBREOFFICE_INSTALLED=true
-    fi
-done
-
-if [[ "$LIBREOFFICE_INSTALLED" = true ]]; then
+if [[ -d "$HOME/.config/libreoffice" ]]; then
+    clone_if_missing "https://github.com/dracula/libreoffice.git" "$LIBREOFFICE_DRACULA" "Dracula for LibreOffice"
+    for config in "$HOME"/.config/libreoffice/*/user/config; do
+        [[ -d "$config" ]] && cp "$LIBREOFFICE_DRACULA/dracula.soc" "$config/"
+    done
     success "Dracula palette installed for LibreOffice!"
-    warn "Select Dracula palette: Tools → Options → LibreOffice → Colors"
-else
-    warn "LibreOffice config not found. Run LibreOffice once, then re-run installer"
 fi
 
 # ----------------------------------------------------------------------------
-# 14. Dracula Theme - fzf, TTY, zsh-syntax-highlighting
+# Manual Steps
 # ----------------------------------------------------------------------------
 
-header "14/16 - Configuring Dracula for Shell Tools"
+header "Saving Manual Theme Links"
 
-TTY_DRACULA="$HOME/.local/share/dracula-tty"
-ZSH_SYNTAX_DRACULA="$HOME/.local/share/dracula-zsh-syntax-highlighting"
+cat > "$HOME/.config/dracula-manual-themes.md" << 'EOF'
+# Dracula Themes (Manual Installation)
 
-clone_if_missing "https://github.com/dracula/tty.git" "$TTY_DRACULA" "Dracula TTY"
-clone_if_missing "https://github.com/dracula/zsh-syntax-highlighting.git" "$ZSH_SYNTAX_DRACULA" "Dracula zsh-syntax-highlighting"
+Browser extensions (Chrome Web Store / Firefox Add-ons):
 
-if ! grep -q "# Dracula Theme Configuration" "$HOME/.zshrc" 2>/dev/null; then
-    step "Adding Dracula shell configurations to .zshrc..."
-    cat >> "$HOME/.zshrc" << 'DRACULAEOF'
-
-# ============================================================================
-# Dracula Theme Configuration
-# ============================================================================
-
-# Dracula theme for fzf
-export FZF_DEFAULT_OPTS='--color=fg:#f8f8f2,bg:#282a36,hl:#bd93f9 --color=fg+:#f8f8f2,bg+:#44475a,hl+:#bd93f9 --color=info:#ffb86c,prompt:#50fa7b,pointer:#ff79c6 --color=marker:#ff79c6,spinner:#ffb86c,header:#6272a4'
-
-# Dracula TTY colors (for Linux console)
-if [ "$TERM" = "linux" ]; then
-    printf %b '\e[40m' '\e[8]'
-    printf %b '\e[37m' '\e[8]'
-    printf %b '\e]P0282a36'
-    printf %b '\e]P86272a4'
-    printf %b '\e]P1ff5555'
-    printf %b '\e]P9ff7777'
-    printf %b '\e]P250fa7b'
-    printf %b '\e]PA70fa9b'
-    printf %b '\e]P3f1fa8c'
-    printf %b '\e]PBffb86c'
-    printf %b '\e]P4bd93f9'
-    printf %b '\e]PCcfa9ff'
-    printf %b '\e]P5ff79c6'
-    printf %b '\e]PDff88e8'
-    printf %b '\e]P68be9fd'
-    printf %b '\e]PE97e2ff'
-    printf %b '\e]P7f8f8f2'
-    printf %b '\e]PFffffff'
-    clear
-fi
-
-# Dracula zsh-syntax-highlighting colors
-# Must be set BEFORE sourcing zsh-syntax-highlighting
-typeset -gA ZSH_HIGHLIGHT_STYLES
-ZSH_HIGHLIGHT_STYLES[comment]='fg=#6272A4'
-ZSH_HIGHLIGHT_STYLES[alias]='fg=#50FA7B'
-ZSH_HIGHLIGHT_STYLES[suffix-alias]='fg=#50FA7B'
-ZSH_HIGHLIGHT_STYLES[global-alias]='fg=#50FA7B'
-ZSH_HIGHLIGHT_STYLES[function]='fg=#50FA7B'
-ZSH_HIGHLIGHT_STYLES[command]='fg=#50FA7B'
-ZSH_HIGHLIGHT_STYLES[precommand]='fg=#50FA7B,italic'
-ZSH_HIGHLIGHT_STYLES[autodirectory]='fg=#FFB86C,italic'
-ZSH_HIGHLIGHT_STYLES[single-hyphen-option]='fg=#FFB86C'
-ZSH_HIGHLIGHT_STYLES[double-hyphen-option]='fg=#FFB86C'
-ZSH_HIGHLIGHT_STYLES[back-quoted-argument]='fg=#BD93F9'
-ZSH_HIGHLIGHT_STYLES[builtin]='fg=#8BE9FD'
-ZSH_HIGHLIGHT_STYLES[reserved-word]='fg=#8BE9FD'
-ZSH_HIGHLIGHT_STYLES[hashed-command]='fg=#8BE9FD'
-ZSH_HIGHLIGHT_STYLES[commandseparator]='fg=#FF79C6'
-ZSH_HIGHLIGHT_STYLES[command-substitution-delimiter]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[command-substitution-delimiter-unquoted]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[process-substitution-delimiter]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[back-quoted-argument-delimiter]='fg=#FF79C6'
-ZSH_HIGHLIGHT_STYLES[back-double-quoted-argument]='fg=#FF79C6'
-ZSH_HIGHLIGHT_STYLES[back-dollar-quoted-argument]='fg=#FF79C6'
-ZSH_HIGHLIGHT_STYLES[dollar-quoted-argument]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[dollar-double-quoted-argument]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[assign]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[named-fd]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[numeric-fd]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[unknown-token]='fg=#FF5555'
-ZSH_HIGHLIGHT_STYLES[path]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[path_pathseparator]='fg=#FF79C6'
-ZSH_HIGHLIGHT_STYLES[path_prefix]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[path_prefix_pathseparator]='fg=#FF79C6'
-ZSH_HIGHLIGHT_STYLES[globbing]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[history-expansion]='fg=#BD93F9'
-ZSH_HIGHLIGHT_STYLES[single-quoted-argument]='fg=#F1FA8C'
-ZSH_HIGHLIGHT_STYLES[double-quoted-argument]='fg=#F1FA8C'
-ZSH_HIGHLIGHT_STYLES[rc-quote]='fg=#F1FA8C'
-ZSH_HIGHLIGHT_STYLES[redirection]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[arg0]='fg=#F8F8F2'
-ZSH_HIGHLIGHT_STYLES[default]='fg=#F8F8F2'
-DRACULAEOF
-    success "Dracula shell configurations added to .zshrc!"
-else
-    warn "Dracula shell configuration already in .zshrc, skipping..."
-fi
-
-# ----------------------------------------------------------------------------
-# 15. Browser Extensions Info
-# ----------------------------------------------------------------------------
-
-header "15/16 - Browser Extensions (Manual Installation Required)"
-
-echo -e "${CYAN}The following browser extensions need manual installation:${NC}"
-echo ""
-echo -e "  ${YELLOW}ChatGPT${NC}:  https://draculatheme.com/chatgpt"
-echo -e "  ${YELLOW}Gemini${NC}:   https://draculatheme.com/gemini"
-echo -e "  ${YELLOW}GitHub${NC}:   https://draculatheme.com/github"
-echo -e "  ${YELLOW}GitLab${NC}:   https://draculatheme.com/gitlab"
-echo -e "  ${YELLOW}LeetCode${NC}: https://draculatheme.com/leetcode"
-echo ""
-echo -e "${CYAN}All are available in Chrome Web Store and Firefox Add-ons.${NC}"
-
-# Save to file for reference
-mkdir -p "$HOME/.config"
-cat > "$HOME/.config/dracula-browser-extensions.md" << 'EOF'
-# Dracula Browser Extensions
-
-Install these extensions manually from browser extension stores:
-
-| Service  | Installation Link                      |
-|----------|----------------------------------------|
-| ChatGPT  | https://draculatheme.com/chatgpt       |
-| Gemini   | https://draculatheme.com/gemini        |
-| GitHub   | https://draculatheme.com/github        |
-| GitLab   | https://draculatheme.com/gitlab        |
-| LeetCode | https://draculatheme.com/leetcode      |
-
-## Quick Install Links
-
-- **Firefox Add-ons**: Search "Dracula" + service name
-- **Chrome Web Store**: Search "Dracula" + service name
-
-These extensions inject CSS into the respective websites to apply the Dracula theme.
-EOF
-
-success "Browser extensions info saved to ~/.config/dracula-browser-extensions.md"
-
-# ----------------------------------------------------------------------------
-# 16. Extra Dracula Themes (Manual Installation Required)
-# ----------------------------------------------------------------------------
-
-header "16/16 - Extra Dracula Themes (Manual Installation Required)"
-
-echo -e "${CYAN}Manual Dracula themes available (not auto-installed by this script):${NC}"
-echo ""
-echo -e "  ${YELLOW}Firefox${NC}:      https://draculatheme.com/firefox"
-echo -e "  ${YELLOW}Cursor${NC}:       https://draculatheme.com/cursor"
-echo -e "  ${YELLOW}Tmux${NC}:         https://draculatheme.com/tmux"
-echo -e "  ${YELLOW}Kitty${NC}:        https://draculatheme.com/kitty"
-echo -e "  ${YELLOW}Git${NC}:          https://draculatheme.com/git"
-echo -e "  ${YELLOW}Yazi${NC}:         https://draculatheme.com/yazi"
-echo -e "  ${YELLOW}Obsidian${NC}:    https://draculatheme.com/obsidian"
-echo -e "  ${YELLOW}Dunst${NC}:        https://draculatheme.com/dunst"
-echo -e "  ${YELLOW}Monkeytype${NC}:   https://draculatheme.com/monkeytype"
-echo -e "  ${YELLOW}gh-pages${NC}:     https://draculatheme.com/gh-pages"
-echo -e "  ${YELLOW}YouTube${NC}:      https://draculatheme.com/youtube"
-echo -e "  ${YELLOW}Stack Overflow${NC}: https://draculatheme.com/stackoverflow"
-echo -e "  ${YELLOW}Libreddit${NC}:    https://draculatheme.com/libreddit"
-echo ""
-echo -e "${YELLOW}Note:${NC} Apply these manually if you want Dracula styling for the listed tools/services."
-
-cat > "$HOME/.config/dracula-extra-themes.md" << 'EOF'
-# Extra Dracula Themes (Manual)
-
-The following official Dracula themes are available but not installed automatically:
-
-| Tool / Service | Link                                   |
+| Service        | Link                                   |
 |----------------|----------------------------------------|
-| Firefox        | https://draculatheme.com/firefox       |
-| Cursor         | https://draculatheme.com/cursor        |
-| Tmux           | https://draculatheme.com/tmux          |
-| Kitty          | https://draculatheme.com/kitty         |
-| Git            | https://draculatheme.com/git           |
-| Yazi           | https://draculatheme.com/yazi          |
-| Obsidian       | https://draculatheme.com/obsidian      |
-| Dunst          | https://draculatheme.com/dunst         |
-| Monkeytype     | https://draculatheme.com/monkeytype    |
-| gh-pages       | https://draculatheme.com/gh-pages      |
+| ChatGPT        | https://draculatheme.com/chatgpt       |
+| Gemini         | https://draculatheme.com/gemini        |
+| GitHub         | https://draculatheme.com/github        |
+| GitLab         | https://draculatheme.com/gitlab        |
+| LeetCode       | https://draculatheme.com/leetcode      |
 | YouTube        | https://draculatheme.com/youtube       |
 | Stack Overflow | https://draculatheme.com/stackoverflow |
-| Libreddit      | https://draculatheme.com/libreddit     |
-EOF
+| Monkeytype     | https://draculatheme.com/monkeytype    |
 
-success "Extra Dracula theme links saved to ~/.config/dracula-extra-themes.md"
+Apps:
+
+| App      | Link                              |
+|----------|-----------------------------------|
+| Firefox  | https://draculatheme.com/firefox  |
+| Cursor   | https://draculatheme.com/cursor   |
+| Obsidian | https://draculatheme.com/obsidian |
+EOF
+success "Saved to ~/.config/dracula-manual-themes.md"
 
 # ----------------------------------------------------------------------------
 # Complete!
 # ----------------------------------------------------------------------------
-
-header "Installation Complete!"
 
 echo -e "${GREEN}"
 cat << "EOF"
@@ -702,17 +613,16 @@ EOF
 echo -e "${NC}"
 
 echo -e "${CYAN}Next steps:${NC}"
-echo -e "  ${YELLOW}1.${NC} Log out and log back in (or reboot)"
+echo -e "  ${YELLOW}1.${NC} Reboot (needed for the input group, snap and the default shell)"
 echo -e "  ${YELLOW}2.${NC} Start Hyprland: ${GREEN}Hyprland${NC}"
-echo -e "  ${YELLOW}3.${NC} Install tmux plugins: ${GREEN}Ctrl+a${NC} then ${GREEN}I${NC}"
-echo -e "  ${YELLOW}4.${NC} Configure prompt: ${GREEN}p10k configure${NC}"
+echo -e "  ${YELLOW}3.${NC} Configure prompt: ${GREEN}p10k configure${NC}"
 echo ""
 echo -e "${PURPLE}Keybindings:${NC}"
 echo -e "  ${YELLOW}Super + Return${NC}  - Terminal"
 echo -e "  ${YELLOW}Super + D${NC}       - App launcher"
 echo -e "  ${YELLOW}Super + Q${NC}       - Power menu"
-echo -e "  ${YELLOW}Super + R${NC}       - Rotate layout"
+echo -e "  ${YELLOW}Super + R${NC}       - Toggle split"
 echo -e "  ${YELLOW}Super + W${NC}       - Close window"
-echo -e "  ${YELLOW}Super + 1-7${NC}     - Workspaces"
+echo -e "  ${YELLOW}Super + 1-9${NC}     - Workspaces"
 echo ""
 echo -e "${GREEN}Enjoy your new rice!${NC}"
