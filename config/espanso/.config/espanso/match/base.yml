@@ -33,3 +33,6 @@ matches:
 
       Link:
       {{clipboard}}
+
+  - trigger: ":commit"
+    replace: 'git commit -m "$|$"'
