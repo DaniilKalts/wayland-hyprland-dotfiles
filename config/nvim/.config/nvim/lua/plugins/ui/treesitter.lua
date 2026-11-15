@@ -27,7 +27,6 @@ return {
 		lazy = false,
 		config = function()
 
-			-- Enable Tree-sitter highlighting for all buffers
 			vim.api.nvim_create_autocmd("FileType", {
 				pattern = "*",
 				callback = function(args)
@@ -37,7 +36,6 @@ return {
 				end,
 			})
 
-			-- Enable Tree-sitter indentation
 			vim.api.nvim_create_autocmd("FileType", {
 				pattern = "*",
 				callback = function(args)

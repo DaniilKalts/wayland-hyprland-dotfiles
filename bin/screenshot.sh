@@ -1,134 +1,41 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# ┌───────────────────────────────────────────────────────────────────────────┐
-# │                    SCREENSHOT WITH NOTIFICATIONS                          │
-# └───────────────────────────────────────────────────────────────────────────┘
-# Takes screenshots with grim+satty and shows notifications with preview
-# Note: Requires screenshot-watcher.sh to be running for instant notifications
-#
-# Usage: screenshot.sh [fullscreen|region|fullscreen-save|region-save|fullscreen-copy|region-copy]
+usage="Usage: screenshot.sh [fullscreen|region][-save|-copy]"
+mode="${1:-region}"
+dir="$HOME/pictures/screenshots"
+mkdir -p "$dir"
 
-MODE="${1:-region}"
-TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
-SCREENSHOT_DIR="$HOME/pictures/screenshots"
-
-# Create screenshots directory if it doesn't exist
-mkdir -p "$SCREENSHOT_DIR"
-
-# Return the name of the monitor currently focused in Hyprland.
-active_monitor_name() {
-    local hyprctl_args=()
-    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-        hyprctl_args=(-i "$HYPRLAND_INSTANCE_SIGNATURE")
+capture() {
+    local target="$1" output="$2" monitor geometry
+    if [[ "$target" == fullscreen ]]; then
+        if ! monitor="$(hyprctl monitors -j | jq -er 'first(.[] | select(.focused)) | .name')"; then
+            notify-send -u critical "Screenshot failed" "Could not determine the focused monitor."
+            return 1
+        fi
+        grim -o "$monitor" -l 0 "$output"
+    else
+        geometry="$(slurp)" || return 1
+        grim -g "$geometry" -l 0 "$output"
     fi
-
-    hyprctl "${hyprctl_args[@]}" monitors -j 2>/dev/null \
-        | jq -er '([.[] | select(.focused == true)] | first) | select(type == "object") | .name' \
-        2>/dev/null
 }
 
-grim_active_monitor() {
-    local monitor
-
-    monitor="$(active_monitor_name)"
-    if [ -z "$monitor" ]; then
-        notify-send -u critical "Screenshot failed" \
-            "Could not determine the focused monitor. No screenshot was taken."
-        return 1
-    fi
-
-    grim -o "$monitor" -l 0 "$@"
-}
-
-case "$MODE" in
-    fullscreen)
-        # Fullscreen screenshot with satty annotation
-        grim_active_monitor - | satty --filename -
-        ;;
-
-    region)
-        # Region selection screenshot with satty annotation
-        grim -l 0 -g "$(slurp)" - | satty --filename -
-        ;;
-
-    fullscreen-save)
-        # Fullscreen screenshot saved directly to file
-        FILENAME="${SCREENSHOT_DIR}/screenshot-${TIMESTAMP}.png"
-        if ! grim_active_monitor "$FILENAME"; then
-            exit 1
-        fi
-
-        notify-send -a "screenshot" \
-                   -u normal \
-                   -i "$FILENAME" \
-                   "Screenshot Saved" \
-                   "~/pictures/screenshots/screenshot-${TIMESTAMP}.png"
-        ;;
-
-    region-save)
-        # Region screenshot saved directly to file
-        GEOMETRY=$(slurp)
-
-        # Check if user cancelled slurp
-        if [ -n "$GEOMETRY" ]; then
-            FILENAME="${SCREENSHOT_DIR}/screenshot-${TIMESTAMP}.png"
-            grim -l 0 -g "$GEOMETRY" "$FILENAME"
-
-            notify-send -a "screenshot" \
-                       -u normal \
-                       -i "$FILENAME" \
-                       "Screenshot Saved" \
-                       "~/pictures/screenshots/screenshot-${TIMESTAMP}.png"
-        fi
-        ;;
-
-    fullscreen-copy)
-        # Fullscreen screenshot directly to clipboard with notification
-        TEMP_FILE="/tmp/screenshot-${TIMESTAMP}.png"
-        if ! grim_active_monitor "$TEMP_FILE"; then
-            exit 1
-        fi
-
-        # Copy to clipboard
-        wl-copy < "$TEMP_FILE"
-
-        # Show notification with preview
-        notify-send -a "screenshot" \
-                   -u normal \
-                   -i "$TEMP_FILE" \
-                   "Screenshot Copied" \
-                   "Fullscreen screenshot copied to clipboard"
-
-        # Clean up after delay
-        (sleep 10 && rm -f "$TEMP_FILE") &
-        ;;
-
-    region-copy)
-        # Region screenshot directly to clipboard with notification
-        TEMP_FILE="/tmp/screenshot-${TIMESTAMP}.png"
-        GEOMETRY=$(slurp)
-
-        # Check if user cancelled slurp
-        if [ -n "$GEOMETRY" ]; then
-            grim -l 0 -g "$GEOMETRY" "$TEMP_FILE"
-
-            # Copy to clipboard
-            wl-copy < "$TEMP_FILE"
-
-            # Show notification with preview
-            notify-send -a "screenshot" \
-                       -u normal \
-                       -i "$TEMP_FILE" \
-                       "Screenshot Copied" \
-                       "Region screenshot copied to clipboard"
-
-            # Clean up after delay
-            (sleep 10 && rm -f "$TEMP_FILE") &
-        fi
-        ;;
-
-    *)
-        echo "Usage: $0 [fullscreen|region|fullscreen-copy|region-copy]"
+copy() {
+    local file
+    file="$(mktemp --suffix=.png)"
+    if ! capture "$1" "$file"; then
+        rm -f "$file"
         exit 1
-        ;;
+    fi
+    wl-copy < "$file"
+    notify-send -a screenshot -i "$file" "Screenshot Copied" "${1^} screenshot copied to clipboard"
+    (sleep 10 && rm -f "$file") &
+}
+
+# Saved files are announced by screenshot-watcher.sh.
+case "$mode" in
+    fullscreen | region) capture "$mode" - | satty --filename - ;;
+    fullscreen-save | region-save) capture "${mode%-save}" "$dir/screenshot-$(date +%Y%m%d-%H%M%S).png" ;;
+    fullscreen-copy | region-copy) copy "${mode%-copy}" ;;
+    *) echo "$usage" >&2; exit 1 ;;
 esac

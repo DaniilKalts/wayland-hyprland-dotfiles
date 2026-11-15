@@ -1,30 +1,19 @@
-#!/bin/bash
-# Volume control script - ensures volume is always divisible by 5
+#!/usr/bin/env bash
+set -euo pipefail
 
-ACTION="$1"
+sink="@DEFAULT_AUDIO_SINK@"
+step=5
 
-# Get current volume (0-100)
-CURRENT=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2 * 100)}')
+set_volume() {
+    wpctl set-volume "$sink" "$(( $1 < 0 ? 0 : $1 > 100 ? 100 : $1 ))%"
+}
 
-# Round to nearest 5
-ROUNDED=$(( (CURRENT + 2) / 5 * 5 ))
+current="$(wpctl get-volume "$sink" | awk '{print int($2 * 100)}')"
+rounded=$(( (current + step / 2) / step * step ))
 
-case "$ACTION" in
-    up)
-        NEW=$((ROUNDED + 5))
-        [ $NEW -gt 100 ] && NEW=100
-        wpctl set-volume @DEFAULT_AUDIO_SINK@ ${NEW}%
-        ;;
-    down)
-        NEW=$((ROUNDED - 5))
-        [ $NEW -lt 0 ] && NEW=0
-        wpctl set-volume @DEFAULT_AUDIO_SINK@ ${NEW}%
-        ;;
-    toggle)
-        wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-        ;;
-    *)
-        echo "Usage: $0 {up|down|toggle}"
-        exit 1
-        ;;
+case "${1:-}" in
+    up) set_volume $(( rounded + step )) ;;
+    down) set_volume $(( rounded - step )) ;;
+    toggle) wpctl set-mute "$sink" toggle ;;
+    *) echo "Usage: volume.sh {up|down|toggle}" >&2; exit 1 ;;
 esac

@@ -6,7 +6,7 @@
 - **WM**: [**`Hyprland`**](https://wiki.hypr.land/)
 - **Bar**: [**`Waybar`**](https://waybar.org/)
 - **Terminal**: [**`Kitty`**](https://github.com/kovidgoyal/kitty)
-- **App Launcher**: [**`Wofi`**](https://github.com/SimplyCEO/wofi?utm_source=chatgpt.com)
+- **App Launcher**: [**`Wofi`**](https://github.com/SimplyCEO/wofi)
 - **Notify Daemon**: [**`Dunst`**](https://github.com/dunst-project/dunst)
 - **Shell**: [**`Zsh`**](https://github.com/ohmyzsh/ohmyzsh)
 - **Text Editor**: [**`Neovim`**](https://neovim.io/)
@@ -72,23 +72,30 @@
 ## 💻 HotKeys
 
 - **Open the terminal** - `super + enter`
-- **Close the window that is in focus** - `super + w`
-- **Switch to another desktop** - `super + 1/7`
-- **Move the window to another desktop** - `super + shift + 1/7`
-- **Switch the window to floating mode** - `super + s`
-- **Open the application menu** - `super + d`
-- **Power Menu** - `win + q`
-- **AI Menu** - `win + q`
-- **Set a wallpaper** - `super + shift + s`
-- **Take a screenshot** - `win + p`
-- **Take an accurate screenshot** - `win + shift + p`
-- **Logout from a user** - `win + shift + q`
-- **Open Yazi (terminal file manager) in the terminal** - `Ctrl + y`
-- **Pick a color to clipboard** - `alt + p`
+- **Close the focused window** - `super + w`
+- **Switch to a workspace** - `super + 1-9`
+- **Move the window to a workspace** - `super + shift + 1-9`
+- **Focus a neighbouring window** - `super + h/j/k/l`
+- **Float / tile / fullscreen the window** - `super + s` / `super + n` / `super + f`
+- **Application menu** - `super + d`
+- **Power menu** - `super + q`
+- **AI menu** - `super + c`
+- **IDE menu** - `super + i`
+- **Clipboard history** - `super + shift + c`
+- **Wallpaper selector** - `super + shift + s`
+- **Screenshot the screen to a file** - `super + p`
+- **Screenshot a region and annotate it** - `super + shift + p`
+- **Screenshot the screen / a region to the clipboard** - `super + ctrl + p` / `super + ctrl + shift + p`
+- **Lock the screen** - `super + escape`
+- **Log out** - `super + alt + q`
+- **Pick a color to the clipboard** - `alt + p`
+- **Open Yazi in a new terminal tab** - `ctrl + y`
+
+All bindings live in `config/hypr/.config/hypr/modules/bindings.lua`.
 
 ## 🛠️ Installation
 
-Just run this script from the root of the repository.
+Run the installer from the root of the repository. It links the configs and `bin/` scripts into place with Stow, so edits in the repository apply immediately.
 
 ```
 ./install.sh

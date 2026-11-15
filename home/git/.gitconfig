@@ -15,5 +15,3 @@
 	path = ~/.gitconfig.local
 [merge]
 	conflictstyle = diff3
-[safe]
-	directory = /home/gopher/projects/DaniilKalts

@@ -1,8 +1,11 @@
+global_vars:
+  - name: clipboard
+    type: shell
+    params:
+      cmd: "wl-paste --no-newline --type text 2>/dev/null || echo '[CLIPBOARD EMPTY]'"
+
 matches:
   - trigger: ":test"
-    vars:
-      - name: clipboard
-        type: clipboard
     replace: |-
       Answer the test below. Solve each question, then double-check every answer. For questions with multiple correct options, verify that you included all correct options and no incorrect ones.
 
@@ -14,3 +17,19 @@ matches:
       ```
       {{clipboard}}
       ```
+
+  - trigger: ":abs"
+    replace: |-
+      Create a new TickTick task for tomorrow's ABS workout, using my most recent ABS Workout task as the template.
+
+      - Search my tasks for the latest completed "ABS Workout" task and copy its structure.
+      - Title: "ABS Workout"
+      - Project: Inbox
+      - Due date: tomorrow, all-day, timezone Asia/Almaty
+      - Priority: high
+      - Tag: Calisthenics
+      - Checklist: copy the items from the template (e.g. "Warm-Up - 5 minutes" and "ABS WorkOut")
+      - Description: the YouTube link below
+
+      Link:
+      {{clipboard}}

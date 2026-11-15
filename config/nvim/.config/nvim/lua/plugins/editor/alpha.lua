@@ -8,7 +8,6 @@ return {
 		local alpha = require("alpha")
 		local dashboard = require("alpha.themes.dashboard")
 
-		-- Set custom ASCII art as header
 		dashboard.section.header.val = {
 			"███╗   ██╗ ███████╗ ██████╗  ██╗   ██╗ ██╗ ███╗   ███╗",
 			"████╗  ██║ ██╔════╝██╔═══██╗ ██║   ██║ ██║ ████╗ ████║",
@@ -18,7 +17,6 @@ return {
 			"╚═╝  ╚═══╝ ╚══════╝ ╚═════╝    ╚═══╝   ╚═╝ ╚═╝     ╚═╝",
 		}
 
-		-- Set menu buttons
 		dashboard.section.buttons.val = {
 			dashboard.button("e", "  New file", ":ene <BAR> startinsert <CR>"),
 			dashboard.button("f", "  Find file", ":Telescope find_files<CR>"),
@@ -27,19 +25,17 @@ return {
 			dashboard.button("q", "󰅖  Quit NVIM", ":qa<CR>"),
 		}
 
-		-- Function to calculate padding
 		local function calculate_padding()
 			local total_lines = vim.o.lines
 			local header_lines = #dashboard.section.header.val
 			local buttons_lines = #dashboard.section.buttons.val
 			local footer_lines = #dashboard.section.footer.val
-			local content_lines = header_lines + buttons_lines + footer_lines + 6 -- Adding extra padding
+			local content_lines = header_lines + buttons_lines + footer_lines + 6
 
 			local padding_top = math.floor((total_lines - content_lines) / 2)
 			return math.max(padding_top, 0)
 		end
 
-		-- Apply padding to layout
 		local padding_top = calculate_padding()
 		dashboard.config.layout = {
 			{ type = "padding", val = padding_top },
@@ -50,7 +46,6 @@ return {
 			dashboard.section.footer,
 		}
 
-		-- Reapply colorscheme and highlights immediately after alpha setup
 		vim.cmd([[colorscheme dracula]])
 		vim.cmd([[
       hi AlphaHeader guifg=#bd93f9
@@ -59,7 +54,6 @@ return {
       hi AlphaButtonShortcut guifg=#ffb86c
     ]])
 
-		-- Set highlight options for dashboard sections
 		dashboard.section.header.opts = {
 			position = "center",
 			hl = "AlphaHeader",
@@ -73,16 +67,14 @@ return {
 			button.opts.hl_shortcut = "AlphaButtonShortcut"
 		end
 
-		-- Setup the dashboard configuration
 		alpha.setup(dashboard.config)
 
-		-- Define a function to toggle the Alpha dashboard
 		function ToggleAlpha()
 			local bufnr = vim.fn.bufnr("%")
 			if vim.api.nvim_buf_get_name(bufnr) == "" and vim.bo[bufnr].buftype == "" then
 				vim.cmd("Alpha")
 			else
-				vim.cmd("enew") -- or you can use 'bd' to close the buffer
+				vim.cmd("enew")
 			end
 		end
 	end,

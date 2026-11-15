@@ -37,7 +37,6 @@ return {
 			-- Disable semantic tokens in capabilities (use Tree-sitter only)
 			capabilities.textDocument.semanticTokens = nil
 
-			-- LSP servers to install
 			local servers = {
 				"lua_ls",
 				"bashls",
@@ -63,17 +62,14 @@ return {
 			local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
 			vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
 
-			-- Configure global defaults for all LSP servers (Neovim 0.11+)
 			vim.lsp.config("*", {
 				capabilities = capabilities,
 			})
 
-			-- Enable all servers
 			for _, server in ipairs(servers) do
 				vim.lsp.enable(server)
 			end
 
-			-- Diagnostic configuration
 			vim.diagnostic.config({
 				virtual_text = true,
 				signs = true,
@@ -82,14 +78,12 @@ return {
 				severity_sort = true,
 			})
 
-			-- Define diagnostic signs
 			local signs = { Error = "✘", Warn = "", Hint = "", Info = "" }
 			for type, icon in pairs(signs) do
 				local hl = "DiagnosticSign" .. type
 				vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
 			end
 
-			-- Global LSP keymaps and settings via LspAttach autocmd
 			vim.api.nvim_create_autocmd("LspAttach", {
 				group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
 				callback = function(ev)
@@ -97,7 +91,6 @@ return {
 					local bufnr = ev.buf
 					local opts = { noremap = true, silent = true, buffer = bufnr }
 
-					-- Disable semantic tokens on the client side as well
 					if client then
 						client.server_capabilities.semanticTokensProvider = nil
 					end
@@ -109,7 +102,6 @@ return {
 					vim.keymap.set("n", "<leader>A", all_code_actions, opts)
 					vim.keymap.set("n", "<leader>r", vim.lsp.buf.rename, opts)
 
-					-- Auto-format on save
 					vim.api.nvim_create_autocmd("BufWritePre", {
 						buffer = bufnr,
 						callback = function()
@@ -118,7 +110,6 @@ return {
 						desc = "Auto format on save",
 					})
 
-					-- ESLint auto-fix on save
 					if client and client.name == "eslint" then
 						vim.api.nvim_create_autocmd("BufWritePre", {
 							buffer = bufnr,

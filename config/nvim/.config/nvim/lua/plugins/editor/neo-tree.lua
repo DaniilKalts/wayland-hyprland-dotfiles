@@ -1,4 +1,3 @@
--- Enable mouse support
 vim.o.mouse = "a"
 
 return {
@@ -21,19 +20,17 @@ return {
           group_empty_dirs = true,
           hijack_netrw_behavior = "open_default",
           filtered_items = {
-            hide_dotfiles = true, -- Hide dotfiles
-            hide_gitignored = true, -- Hide gitignored files
+            hide_dotfiles = true,
+            hide_gitignored = true,
           },
         },
       })
 
-      -- Keep icons' original colors even when selected or hovered
-      vim.cmd("highlight NeoTreeFileIcon guifg=#BD93F9")   -- Keep file icon color consistent
-      vim.cmd("highlight NeoTreeDirectoryIcon guifg=#BD93F9") -- Keep directory icon color consistent
-      vim.cmd("highlight NeoTreeDirectoryName guifg=#BD93F9") -- Directory name color
+      vim.cmd("highlight NeoTreeFileIcon guifg=#BD93F9")
+      vim.cmd("highlight NeoTreeDirectoryIcon guifg=#BD93F9")
+      vim.cmd("highlight NeoTreeDirectoryName guifg=#BD93F9")
 
-      -- Customize the selection line to only change the background
-      vim.cmd("highlight NeoTreeCursorLine guibg=#44475a guifg=NONE") -- Background for selected item
+      vim.cmd("highlight NeoTreeCursorLine guibg=#44475a guifg=NONE")
     end,
   },
 }

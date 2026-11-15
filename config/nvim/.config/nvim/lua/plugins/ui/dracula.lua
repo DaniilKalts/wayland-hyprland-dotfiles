@@ -34,10 +34,8 @@ return {
       italic_comment = true,
     })
 
-    -- Apply the colorscheme
     vim.cmd([[colorscheme dracula]])
 
-    -- Apply custom highlights for Neo-tree
     vim.cmd("highlight NeoTreeTitleBar guibg=#BD93F9 guifg=#21222C")
   end,
 }

@@ -1,54 +1,25 @@
 #!/usr/bin/env bash
+set -euo pipefail
+shopt -s nullglob
 
-# ┌───────────────────────────────────────────────────────────────────────────┐
-# │                    SCREENSHOT WATCHER DAEMON                              │
-# └───────────────────────────────────────────────────────────────────────────┘
-# Watches for new screenshots and sends notifications immediately
+dir="$HOME/pictures/screenshots"
+pidfile="/tmp/screenshot-watcher.pid"
 
-SCREENSHOT_DIR="$HOME/pictures/screenshots"
-WATCH_FILE="/tmp/screenshot-watcher.pid"
-
-# Check if already running
-if [ -f "$WATCH_FILE" ]; then
-    OLD_PID=$(cat "$WATCH_FILE")
-    if ps -p "$OLD_PID" > /dev/null 2>&1; then
-        echo "Watcher already running (PID: $OLD_PID)"
-        exit 0
-    fi
+if [[ -f "$pidfile" ]] && kill -0 "$(<"$pidfile")" 2>/dev/null; then
+    exit 0
 fi
+echo $$ > "$pidfile"
+mkdir -p "$dir"
 
-# Save our PID
-echo $$ > "$WATCH_FILE"
-
-# Create screenshots directory
-mkdir -p "$SCREENSHOT_DIR"
-
-# Keep track of known files
-declare -A seen_files
-for file in "$SCREENSHOT_DIR"/*.png; do
-    [ -f "$file" ] && seen_files["$file"]=1
+declare -A seen
+for file in "$dir"/*.png; do
+    seen["$file"]=1
 done
 
-echo "Screenshot watcher started (PID: $$)"
-
-# Watch for new files
-while true; do
-    for file in "$SCREENSHOT_DIR"/*.png; do
-        [ -f "$file" ] || continue
-
-        # If this is a new file we haven't seen before
-        if [ -z "${seen_files[$file]}" ]; then
-            seen_files["$file"]=1
-            filename=$(basename "$file")
-
-            # Send notification with screenshot preview
-            notify-send -a "screenshot" \
-                       -u normal \
-                       -i "$file" \
-                       "Screenshot saved in" \
-                       "~/pictures/screenshots/"
-        fi
+while sleep 0.5; do
+    for file in "$dir"/*.png; do
+        [[ -n "${seen[$file]:-}" ]] && continue
+        seen["$file"]=1
+        notify-send -a screenshot -i "$file" "Screenshot saved in" "~/pictures/screenshots/" || true
     done
-
-    sleep 0.5  # Check twice per second
 done

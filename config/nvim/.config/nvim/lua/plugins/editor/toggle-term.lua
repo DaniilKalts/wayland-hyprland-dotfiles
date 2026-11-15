@@ -26,7 +26,6 @@ return {
 				},
 			},
 
-			-- Automatically change to the project root when opening the terminal
 			on_open = function(term)
 				local current_dir = vim.fn.getcwd()
 				if current_dir and current_dir ~= "" then
@@ -38,7 +37,6 @@ return {
 			end,
 		})
 
-		-- Keybindings to toggle specific terminals in normal mode
 		vim.api.nvim_set_keymap(
 			"n",
 			"<M-1>",
@@ -76,7 +74,6 @@ return {
 			{ noremap = true, silent = true }
 		)
 
-		-- Keybindings to toggle specific terminals in terminal mode
 		vim.api.nvim_set_keymap(
 			"t",
 			"<M-1>",
@@ -114,11 +111,9 @@ return {
 			{ noremap = true, silent = true }
 		)
 
-		-- Keybindings to change the size of terminals in normal mode
 		vim.api.nvim_set_keymap("n", "<M-=>", ":resize +5<CR>", { noremap = true, silent = true })
 		vim.api.nvim_set_keymap("n", "<M-->", ":resize -5<CR>", { noremap = true, silent = true })
 
-		-- Keybindings to change the size of terminals in terminal mode
 		vim.api.nvim_set_keymap("t", "<M-=>", "<C-\\><C-n>:resize +5<CR>", { noremap = true, silent = true })
 		vim.api.nvim_set_keymap("t", "<M-->", "<C-\\><C-n>:resize -5<CR>", { noremap = true, silent = true })
 	end,

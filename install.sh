@@ -1,29 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  ██╗  ██╗██╗   ██╗██████╗ ██████╗ ██╗      █████╗ ███╗   ██╗██████╗       ║
-# ║  ██║  ██║╚██╗ ██╔╝██╔══██╗██╔══██╗██║     ██╔══██╗████╗  ██║██╔══██╗      ║
-# ║  ███████║ ╚████╔╝ ██████╔╝██████╔╝██║     ███████║██╔██╗ ██║██║  ██║      ║
-# ║  ██╔══██║  ╚██╔╝  ██╔═══╝ ██╔══██╗██║     ██╔══██║██║╚██╗██║██║  ██║      ║
-# ║  ██║  ██║   ██║   ██║     ██║  ██║███████╗██║  ██║██║ ╚████║██████╔╝      ║
-# ║  ╚═╝  ╚═╝   ╚═╝   ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝       ║
-# ║                                                                           ║
-# ║                    Wayland/Hyprland Rice Installer                        ║
-# ║                         Author: Daniil Kalts                              ║
-# ╚═══════════════════════════════════════════════════════════════════════════╝
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# ----------------------------------------------------------------------------
-# Colors & Helpers
-# ----------------------------------------------------------------------------
 
 RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[0;33m'
 BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' NC='\033[0m'
 
 STEP=0
-TOTAL=17
+TOTAL="$(grep -c '^header "' "${BASH_SOURCE[0]}")"
 
 header() {
     STEP=$((STEP + 1))
@@ -38,7 +22,6 @@ warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 err()     { echo -e "${RED}[✗]${NC} $1"; }
 die()     { err "$1"; exit 1; }
 
-# Backup file/dir if it exists and is not a symlink; remove stale symlinks
 backup() {
     local target="$1"
     if [[ -L "$target" ]]; then
@@ -70,10 +53,6 @@ copy_dir_contents() {
     cp -r "$src/." "$dst/"
 }
 
-# ----------------------------------------------------------------------------
-# Preflight
-# ----------------------------------------------------------------------------
-
 [[ "${EUID:-$(id -u)}" -eq 0 ]] && die "Do not run as root!"
 [[ -f /etc/arch-release ]] || die "This installer only supports Arch Linux."
 command -v sudo &>/dev/null || die "sudo is required."
@@ -101,10 +80,6 @@ while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done 2>
 SUDO_KEEPALIVE_PID=$!
 trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 
-# ----------------------------------------------------------------------------
-# System Update
-# ----------------------------------------------------------------------------
-
 header "Updating System"
 
 # multilib is needed for wine and 32-bit drivers
@@ -115,10 +90,6 @@ fi
 
 sudo pacman -Syu --needed --noconfirm base-devel git
 success "System updated!"
-
-# ----------------------------------------------------------------------------
-# Yay (AUR Helper)
-# ----------------------------------------------------------------------------
 
 header "Installing Yay (AUR Helper)"
 if command -v yay &>/dev/null; then
@@ -131,10 +102,6 @@ else
     success "Yay installed!"
 fi
 
-# ----------------------------------------------------------------------------
-# Pacman Packages
-# ----------------------------------------------------------------------------
-
 header "Installing Pacman Packages"
 
 # Packages are grouped by the same categories in the pacman, AUR and snap lists
@@ -142,7 +109,7 @@ header "Installing Pacman Packages"
 PACMAN_PACKAGES=(
     # Desktop: Hyprland & Wayland
     hyprland hyprlock hypridle hyprpicker
-    waybar dunst swaybg wofi wl-clipboard cliphist libnotify
+    waybar dunst swaybg wofi wl-clipboard wl-clip-persist cliphist libnotify
     polkit-gnome xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
     xdg-user-dirs xdg-utils qt5-wayland qt6-wayland qt6ct
 
@@ -173,7 +140,7 @@ PACMAN_PACKAGES=(
 
     # Development: languages & build tools (also used by Neovim Mason)
     nodejs npm pnpm python python-pip go rustup jdk-openjdk
-    tree-sitter-cli cmake opencode
+    tree-sitter-cli cmake opencode shellcheck stylua
 
     # Containers
     docker docker-compose docker-buildx lazydocker dive kubectl
@@ -223,10 +190,6 @@ if ! rustup toolchain list 2>/dev/null | grep -q stable; then
     rustup default stable
 fi
 
-# ----------------------------------------------------------------------------
-# AUR Packages
-# ----------------------------------------------------------------------------
-
 header "Installing AUR Packages"
 
 AUR_PACKAGES=(
@@ -234,7 +197,7 @@ AUR_PACKAGES=(
     espanso-wayland waypaper
 
     # Editors
-    cursor-bin visual-studio-code-bin
+    cursor-bin visual-studio-code-bin antigravity
 
     # Development: API clients
     postman-bin insomnia
@@ -270,10 +233,6 @@ step "Installing ${#AUR_PACKAGES[@]} AUR packages..."
 yay -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 success "AUR packages installed!"
 
-# ----------------------------------------------------------------------------
-# Flatpak & Snap
-# ----------------------------------------------------------------------------
-
 header "Setting Up Flatpak & Snap"
 
 step "Adding Flathub remote..."
@@ -294,10 +253,6 @@ for app in "${SNAP_PACKAGES[@]}"; do
 done
 success "Snap apps installed!"
 
-# ----------------------------------------------------------------------------
-# System Services
-# ----------------------------------------------------------------------------
-
 header "Enabling System Services"
 
 sudo systemctl enable --now NetworkManager.service bluetooth.service docker.service libvirtd.service
@@ -316,10 +271,6 @@ sudo systemctl enable --now postgresql.service
 sudo usermod -aG docker,libvirt "$USER"
 success "Services enabled: NetworkManager, bluetooth, docker, libvirtd, postgresql"
 
-# ----------------------------------------------------------------------------
-# Home Directories
-# ----------------------------------------------------------------------------
-
 header "Creating Home Directories"
 
 HOME_DIRS=(documents downloads pictures programs projects recordings)
@@ -327,29 +278,7 @@ for dir in "${HOME_DIRS[@]}"; do
     mkdir -p "$HOME/$dir"
 done
 mkdir -p "$HOME/pictures/screenshots" "$HOME/pictures/wallpapers"
-
-# Point XDG user dirs at the lowercase folders; unused ones fall back to $HOME
-mkdir -p "$HOME/.config"
-backup "$HOME/.config/user-dirs.dirs"
-cat > "$HOME/.config/user-dirs.dirs" << 'EOF'
-XDG_DESKTOP_DIR="$HOME"
-XDG_DOCUMENTS_DIR="$HOME/documents"
-XDG_DOWNLOAD_DIR="$HOME/downloads"
-XDG_MUSIC_DIR="$HOME"
-XDG_PICTURES_DIR="$HOME/pictures"
-XDG_PUBLICSHARE_DIR="$HOME"
-XDG_TEMPLATES_DIR="$HOME"
-XDG_VIDEOS_DIR="$HOME/recordings"
-EOF
-
-# Stop xdg-user-dirs-update from recreating Desktop, Music, etc.
-backup "$HOME/.config/user-dirs.conf"
-echo "enabled=False" > "$HOME/.config/user-dirs.conf"
 success "Home directories created: ${HOME_DIRS[*]}"
-
-# ----------------------------------------------------------------------------
-# ZSH
-# ----------------------------------------------------------------------------
 
 header "Setting Up ZSH"
 
@@ -390,50 +319,33 @@ else
     warn "ZSH is already default shell"
 fi
 
-# ----------------------------------------------------------------------------
-# Stow Dotfiles
-# ----------------------------------------------------------------------------
-
 header "Stowing Dotfiles"
 
-# Stow every package in a folder, backing up only real files that would conflict
-stow_all() {
-    local base="$1" pkg name file target
-    for pkg in "$base"/*/; do
-        name="$(basename "$pkg")"
-        step "  Stowing $name..."
-        while IFS= read -r file; do
-            target="$HOME/${file#./}"
-            [[ -e "$target" && ! -L "$target" ]] && backup "$target"
-        done < <(cd "$pkg" && find . -type f)
-        stow --restow -t "$HOME" -d "$base" "$name" || warn "  $name may have conflicts"
-    done
+# Back up real files in the way, but never ones that already resolve into this repo.
+stow_package() {
+    local base="$1" name="$2" target="$3" file
+    step "  Stowing $name..."
+    mkdir -p "$target"
+    while IFS= read -r file; do
+        file="$target/$file"
+        [[ -e "$file" && ! -L "$file" ]] || continue
+        [[ "$(realpath "$file")" == "$SCRIPT_DIR"/* ]] || backup "$file"
+    done < <(cd "$base/$name" && find . -type f -printf '%P\n')
+    stow --restow -t "$target" -d "$base" "$name" || warn "  $name may have conflicts"
 }
 
-step "Stowing config files..."
-stow_all "$SCRIPT_DIR/config"
-success "Config files stowed!"
+for group in config home; do
+    for package in "$SCRIPT_DIR/$group"/*/; do
+        stow_package "$SCRIPT_DIR/$group" "$(basename "$package")" "$HOME"
+    done
+done
+stow_package "$SCRIPT_DIR" bin "$HOME/.local/bin"
+success "Dotfiles and scripts stowed!"
 
-step "Stowing home files..."
-stow_all "$SCRIPT_DIR/home"
-success "Home files stowed!"
-
-# ----------------------------------------------------------------------------
-# Scripts & Wallpapers
-# ----------------------------------------------------------------------------
-
-header "Copying Scripts & Wallpapers"
-
-copy_dir_contents "$SCRIPT_DIR/bin" "$HOME/.local/bin" "Scripts"
-chmod +x "$HOME/.local/bin"/*.sh 2>/dev/null || true
-success "Scripts copied to ~/.local/bin!"
+header "Copying Wallpapers"
 
 copy_dir_contents "$SCRIPT_DIR/wallpapers" "$HOME/pictures/wallpapers" "Wallpapers"
 success "Wallpapers copied to ~/pictures/wallpapers!"
-
-# ----------------------------------------------------------------------------
-# Neovim
-# ----------------------------------------------------------------------------
 
 header "Setting Up Neovim"
 
@@ -443,10 +355,6 @@ clone_if_missing "https://github.com/folke/lazy.nvim.git" \
 step "Syncing Neovim plugins..."
 nvim --headless "+Lazy! sync" +qa || warn "Plugin sync failed. Open Neovim to finish installation."
 success "Neovim ready!"
-
-# ----------------------------------------------------------------------------
-# AI Tools
-# ----------------------------------------------------------------------------
 
 header "Installing AI Tools"
 
@@ -470,18 +378,10 @@ else
 fi
 success "AI tools installed: Claude Code, Codex, Gemini CLI"
 
-# ----------------------------------------------------------------------------
-# Tmux
-# ----------------------------------------------------------------------------
-
 header "Setting Up Tmux"
 clone_if_missing "https://github.com/tmux-plugins/tpm.git" "$HOME/.tmux/plugins/tpm" "TPM"
 "$HOME/.tmux/plugins/tpm/bin/install_plugins" >/dev/null 2>&1 \
     || warn "Install tmux plugins manually: Ctrl+a then I"
-
-# ----------------------------------------------------------------------------
-# Espanso
-# ----------------------------------------------------------------------------
 
 header "Setting Up Espanso"
 
@@ -497,10 +397,6 @@ sudo setcap cap_dac_override+p "$(readlink -f "$(command -v espanso)")"
 step "Registering espanso service..."
 espanso service register || warn "espanso service already registered"
 success "Espanso ready! It starts with your next session."
-
-# ----------------------------------------------------------------------------
-# Dracula Theme: GTK, Icons, Cursor
-# ----------------------------------------------------------------------------
 
 header "Applying Dracula Theme"
 
@@ -533,10 +429,6 @@ step "Applying GTK settings..."
 fc-cache -f >/dev/null 2>&1
 success "Font cache refreshed!"
 
-# ----------------------------------------------------------------------------
-# Dracula Theme: Apps
-# ----------------------------------------------------------------------------
-
 header "Installing Dracula for Apps"
 
 # VSCode
@@ -568,10 +460,6 @@ if [[ -d "$HOME/.config/libreoffice" ]]; then
     success "Dracula palette installed for LibreOffice!"
 fi
 
-# ----------------------------------------------------------------------------
-# Manual Steps
-# ----------------------------------------------------------------------------
-
 header "Saving Manual Theme Links"
 
 cat > "$HOME/.config/dracula-manual-themes.md" << 'EOF'
@@ -600,10 +488,6 @@ Apps:
 EOF
 success "Saved to ~/.config/dracula-manual-themes.md"
 
-# ----------------------------------------------------------------------------
-# Complete!
-# ----------------------------------------------------------------------------
-
 echo -e "${GREEN}"
 cat << "EOF"
     ╔═══════════════════════════════════════════════════════════╗
@@ -616,13 +500,6 @@ echo -e "${CYAN}Next steps:${NC}"
 echo -e "  ${YELLOW}1.${NC} Reboot (needed for the input group, snap and the default shell)"
 echo -e "  ${YELLOW}2.${NC} Start Hyprland: ${GREEN}Hyprland${NC}"
 echo -e "  ${YELLOW}3.${NC} Configure prompt: ${GREEN}p10k configure${NC}"
-echo ""
-echo -e "${PURPLE}Keybindings:${NC}"
-echo -e "  ${YELLOW}Super + Return${NC}  - Terminal"
-echo -e "  ${YELLOW}Super + D${NC}       - App launcher"
-echo -e "  ${YELLOW}Super + Q${NC}       - Power menu"
-echo -e "  ${YELLOW}Super + R${NC}       - Toggle split"
-echo -e "  ${YELLOW}Super + W${NC}       - Close window"
-echo -e "  ${YELLOW}Super + 1-9${NC}     - Workspaces"
+echo -e "  ${YELLOW}4.${NC} Keybindings are listed in ${GREEN}README.md${NC}"
 echo ""
 echo -e "${GREEN}Enjoy your new rice!${NC}"

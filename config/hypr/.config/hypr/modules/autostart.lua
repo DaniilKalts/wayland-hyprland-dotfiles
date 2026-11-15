@@ -5,6 +5,7 @@ local commands = {
     "hypridle",
     "swaybg -i ~/pictures/wallpapers/arch.png -m fill",
     "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1",
+    "wl-clip-persist --clipboard regular",
     "wl-paste --type text --watch cliphist store",
     "wl-paste --type image --watch cliphist store",
     "gsettings set org.gnome.desktop.interface gtk-theme 'Dracula'",
