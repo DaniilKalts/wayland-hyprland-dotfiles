@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Usage: tools.sh [--learn|--boot]
+# Usage: tools.sh [--learn]
 #   --learn  only the tools worth learning
-#   --boot   two random tips, once per boot
 
 PURPLE='\033[38;2;189;147;249m' PINK='\033[38;2;255;121;198m'
 GREEN='\033[38;2;80;250;123m'   CYAN='\033[38;2;139;233;253m'
@@ -130,21 +129,6 @@ print_tool() {
     [[ -n "$instead" ]] && line+=" ${COMMENT}← instead of ${instead}${NC}"
     echo -e "$line"
 }
-
-if [[ "$mode" == "--boot" ]]; then
-    stamp="${XDG_CACHE_HOME:-$HOME/.cache}/tools-tips-boot"
-    boot_id="$(< /proc/sys/kernel/random/boot_id)"
-    [[ "$(cat "$stamp" 2>/dev/null)" == "$boot_id" ]] && exit 0
-    mkdir -p "${stamp%/*}"
-    echo "$boot_id" > "$stamp"
-
-    echo -e "\n  ${CYAN}💡 Tips for this session${NC}"
-    printf '%s\n' "${entries[@]}" | shuf -n 2 | while IFS='|' read -r _ cmd desc _; do
-        print_tool "$cmd" "$desc" ""
-    done
-    echo
-    exit 0
-fi
 
 if [[ "$mode" == "--learn" ]]; then
     echo -e "\n${PURPLE}${BOLD}  󰙨  Tools to learn${NC}  ${COMMENT}(run 'learn-tools' anytime)${NC}"

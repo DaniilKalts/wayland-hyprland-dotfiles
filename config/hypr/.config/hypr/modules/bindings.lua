@@ -142,5 +142,5 @@ exec("XF86AudioNext", "playerctl next", locked)
 
 exec("XF86MonBrightnessUp", "brightnessctl set 5%+", repeating)
 exec("XF86MonBrightnessDown", "brightnessctl set 5%-", repeating)
-exec("F8", "brightnessctl set 5%+", repeating)
-exec("F7", "brightnessctl set 5%-", repeating)
+exec(mod .. " + F8", "brightnessctl set 5%+", repeating)
+exec(mod .. " + F7", "brightnessctl set 5%-", repeating)

@@ -3,7 +3,7 @@ local commands = {
     "dunst",
     "~/.local/bin/screenshot-watcher.sh",
     "hypridle",
-    "swaybg -i ~/pictures/wallpapers/arch.png -m fill",
+    "~/.local/bin/wallpaper.sh",
     "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1",
     "wl-clip-persist --clipboard regular",
     "wl-paste --type text --watch cliphist store",

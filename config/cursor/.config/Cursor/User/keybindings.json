@@ -105,9 +105,9 @@
   // ============================================================================
   // TERMINAL BINDINGS
   // ============================================================================
-  // W: Kill terminal editor (vim-style)
+  // Ctrl+Shift+W: Kill terminal editor
   {
-    "key": "w",
+    "key": "ctrl+shift+w",
     "command": "workbench.action.terminal.killEditor",
     "when": "terminalEditorFocus && terminalFocus && terminalHasBeenCreated || terminalEditorFocus && terminalFocus && terminalProcessSupported"
   }

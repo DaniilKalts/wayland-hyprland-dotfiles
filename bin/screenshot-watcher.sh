@@ -1,25 +1,17 @@
 #!/usr/bin/env bash
+# Announce screenshots saved to ~/pictures/screenshots (by screenshot.sh or satty).
 set -euo pipefail
-shopt -s nullglob
 
 dir="$HOME/pictures/screenshots"
-pidfile="/tmp/screenshot-watcher.pid"
-
-if [[ -f "$pidfile" ]] && kill -0 "$(<"$pidfile")" 2>/dev/null; then
-    exit 0
-fi
-echo $$ > "$pidfile"
 mkdir -p "$dir"
 
-declare -A seen
-for file in "$dir"/*.png; do
-    seen["$file"]=1
-done
+exec 9> "${XDG_RUNTIME_DIR:-/tmp}/screenshot-watcher.lock"
+flock -n 9 || exit 0
 
-while sleep 0.5; do
-    for file in "$dir"/*.png; do
-        [[ -n "${seen[$file]:-}" ]] && continue
-        seen["$file"]=1
-        notify-send -a screenshot -i "$file" "Screenshot saved in" "~/pictures/screenshots/" || true
-    done
+# "changes done" fires once per file, after it is fully written.
+gio monitor -d "$dir" 9>&- | while IFS= read -r event; do
+    [[ "$event" == *".png: changes done" ]] || continue
+    file="${event#*: }"
+    file="${file%: changes done}"
+    notify-send -a screenshot -i "$file" "Screenshot saved in" "~/pictures/screenshots/" || true
 done

@@ -146,8 +146,9 @@ rg_fzf_preview() {
   fi
 
   selected=$(echo "$matches" \
-    | fzf --ansi --exact --no-sort --preview 'bat --style=numbers --color=always --line-range=$(awk -F: "{if ($2 > 10) {print $2-10":"$2+10} else {print \"1:\"$2+10}}" <<< {}) --highlight-line=$(awk -F: "{print $2}" <<< {}) $(awk -F: "{print $1}" <<< {})' \
-      --preview-window=right:60%:wrap --height=60% --border)
+    | fzf --ansi --exact --no-sort --delimiter : \
+      --preview 'bat --style=numbers --color=always --highlight-line {2} {1}' \
+      --preview-window 'right:60%:wrap:+{2}/2' --height=60% --border)
 
   if [[ -n "$selected" ]]; then
     LBUFFER="+$(cut -d: -f2 <<< "$selected") $(cut -d: -f1 <<< "$selected")"
