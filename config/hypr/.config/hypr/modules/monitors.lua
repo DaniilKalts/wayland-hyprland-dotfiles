@@ -9,11 +9,10 @@ local workspaces = {
 }
 
 for monitor, ids in pairs(workspaces) do
-    for index, id in ipairs(ids) do
+    for _, id in ipairs(ids) do
         hl.workspace_rule({
             workspace = tostring(id),
             monitor = monitor,
-            default = index == 1 or nil,
         })
     end
 end
