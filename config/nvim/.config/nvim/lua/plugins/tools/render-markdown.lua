@@ -5,7 +5,7 @@ return {
     ft = { "markdown" },
     opts = {},
     keys = {
-      { "<C-m>", "<cmd>RenderMarkdown toggle<cr>", ft = "markdown", desc = "Toggle Markdown Preview" },
+      { "<leader>m", "<cmd>RenderMarkdown toggle<cr>", ft = "markdown", desc = "Toggle Markdown Rendering" },
     },
   },
 }

@@ -1,127 +1,118 @@
 return {
-	{
-		"williamboman/mason.nvim",
-		lazy = false,
-		config = function()
-			require("mason").setup()
-		end,
-	},
-	{
-		"williamboman/mason-lspconfig.nvim",
-		lazy = false,
-		dependencies = {
-			"williamboman/mason.nvim",
-			"neovim/nvim-lspconfig",
-		},
-		config = function()
-			local capabilities = require("cmp_nvim_lsp").default_capabilities()
+  {
+    "williamboman/mason.nvim",
+    opts = {},
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    dependencies = {
+      "williamboman/mason.nvim",
+      "neovim/nvim-lspconfig",
+    },
+    config = function()
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      local severity = vim.diagnostic.severity
 
-			local function useful_code_actions()
-				vim.lsp.buf.code_action({
-					apply = true,
-					context = {
-						only = {
-							"quickfix",
-							"refactor",
-							"source.fixAll",
-							"source.organizeImports",
-						},
-					},
-				})
-			end
+      local function useful_code_actions()
+        vim.lsp.buf.code_action({
+          apply = true,
+          context = {
+            only = {
+              "quickfix",
+              "refactor",
+              "source.fixAll",
+              "source.organizeImports",
+            },
+          },
+        })
+      end
 
-			local function all_code_actions()
-				vim.lsp.buf.code_action({ apply = true })
-			end
+      local function all_code_actions()
+        vim.lsp.buf.code_action({ apply = true })
+      end
 
-			-- Disable semantic tokens in capabilities (use Tree-sitter only)
-			capabilities.textDocument.semanticTokens = nil
+      local servers = {
+        "lua_ls",
+        "bashls",
+        "docker_compose_language_service",
+        "sqlls",
+        "ts_ls",
+        "html",
+        "cssls",
+        "tailwindcss",
+        "pyright",
+        "gopls",
+        "clangd",
+        "eslint",
+        "jdtls",
+      }
 
-			local servers = {
-				"lua_ls",
-				"bashls",
-				"docker_compose_language_service",
-				"sqlls",
-				"ts_ls",
-				"html",
-				"cssls",
-				"tailwindcss",
-				"pyright",
-				"gopls",
-				"clangd",
-				"eslint",
-				"jdtls",
-			}
+      vim.lsp.config("*", {
+        capabilities = capabilities,
+      })
 
-			require("mason-lspconfig").setup({
-				ensure_installed = servers,
-				automatic_installation = true,
-			})
+      -- Installs the servers and enables each one (automatic_enable).
+      require("mason-lspconfig").setup({
+        ensure_installed = servers,
+      })
 
-			-- Add Mason bin to PATH to ensure servers are found (especially jdtls)
-			local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
-			vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
+      vim.diagnostic.config({
+        virtual_text = true,
+        signs = {
+          text = {
+            [severity.ERROR] = "✘",
+            [severity.WARN] = "",
+            [severity.HINT] = "",
+            [severity.INFO] = "",
+          },
+          numhl = {
+            [severity.ERROR] = "DiagnosticSignError",
+            [severity.WARN] = "DiagnosticSignWarn",
+            [severity.HINT] = "DiagnosticSignHint",
+            [severity.INFO] = "DiagnosticSignInfo",
+          },
+        },
+        underline = true,
+        update_in_insert = false,
+        severity_sort = true,
+      })
 
-			vim.lsp.config("*", {
-				capabilities = capabilities,
-			})
+      local format_group = vim.api.nvim_create_augroup("UserLspFormat", { clear = true })
 
-			for _, server in ipairs(servers) do
-				vim.lsp.enable(server)
-			end
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
+        callback = function(ev)
+          local client = vim.lsp.get_client_by_id(ev.data.client_id)
+          local bufnr = ev.buf
+          local opts = { noremap = true, silent = true, buffer = bufnr }
 
-			vim.diagnostic.config({
-				virtual_text = true,
-				signs = true,
-				underline = true,
-				update_in_insert = false,
-				severity_sort = true,
-			})
+          -- Highlighting comes from Tree-sitter only.
+          if client then
+            client.server_capabilities.semanticTokensProvider = nil
+          end
 
-			local signs = { Error = "✘", Warn = "", Hint = "", Info = "" }
-			for type, icon in pairs(signs) do
-				local hl = "DiagnosticSign" .. type
-				vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
-			end
+          vim.keymap.set("n", "<leader>i", vim.lsp.buf.hover, opts)
+          vim.keymap.set("n", "<leader>d", vim.lsp.buf.definition, opts)
+          vim.keymap.set("n", "<leader>R", vim.lsp.buf.references, opts)
+          vim.keymap.set("n", "<leader>a", useful_code_actions, opts)
+          vim.keymap.set("n", "<leader>A", all_code_actions, opts)
+          vim.keymap.set("n", "<leader>r", vim.lsp.buf.rename, opts)
 
-			vim.api.nvim_create_autocmd("LspAttach", {
-				group = vim.api.nvim_create_augroup("UserLspConfig", { clear = true }),
-				callback = function(ev)
-					local client = vim.lsp.get_client_by_id(ev.data.client_id)
-					local bufnr = ev.buf
-					local opts = { noremap = true, silent = true, buffer = bufnr }
-
-					if client then
-						client.server_capabilities.semanticTokensProvider = nil
-					end
-
-					vim.keymap.set("n", "<leader>i", vim.lsp.buf.hover, opts)
-					vim.keymap.set("n", "<leader>d", vim.lsp.buf.definition, opts)
-					vim.keymap.set("n", "<leader>rf", vim.lsp.buf.references, opts)
-					vim.keymap.set("n", "<leader>a", useful_code_actions, opts)
-					vim.keymap.set("n", "<leader>A", all_code_actions, opts)
-					vim.keymap.set("n", "<leader>r", vim.lsp.buf.rename, opts)
-
-					vim.api.nvim_create_autocmd("BufWritePre", {
-						buffer = bufnr,
-						callback = function()
-							vim.lsp.buf.format({ async = false })
-						end,
-						desc = "Auto format on save",
-					})
-
-					if client and client.name == "eslint" then
-						vim.api.nvim_create_autocmd("BufWritePre", {
-							buffer = bufnr,
-							command = "EslintFixAll",
-						})
-					end
-				end,
-			})
-		end,
-	},
-	{
-		"neovim/nvim-lspconfig",
-		lazy = false,
-	},
+          -- One autocmd per buffer, however many clients attach to it.
+          vim.api.nvim_clear_autocmds({ group = format_group, buffer = bufnr })
+          vim.api.nvim_create_autocmd("BufWritePre", {
+            group = format_group,
+            buffer = bufnr,
+            callback = function()
+              if vim.fn.exists(":LspEslintFixAll") == 2 then
+                vim.cmd("LspEslintFixAll")
+              end
+              vim.lsp.buf.format({ async = false })
+            end,
+            desc = "Auto format on save",
+          })
+        end,
+      })
+    end,
+  },
 }

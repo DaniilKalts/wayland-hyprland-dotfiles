@@ -1,33 +1,14 @@
+-- The plugin maps <C-h/j/k/l> in normal mode itself; only terminal mode needs help.
 return {
   "christoomey/vim-tmux-navigator",
-  lazy = false,
   config = function()
-    vim.api.nvim_set_keymap("n", "<C-h>", "<cmd>TmuxNavigateLeft<CR>", { noremap = true, silent = true })
-    vim.api.nvim_set_keymap("n", "<C-l>", "<cmd>TmuxNavigateRight<CR>", { noremap = true, silent = true })
-	vim.api.nvim_set_keymap("n", "<C-j>", "<cmd>TmuxNavigateDown<CR>", { noremap = true, silent = true })
-    vim.api.nvim_set_keymap("n", "<C-k>", "<cmd>TmuxNavigateUp<CR>", { noremap = true, silent = true })
-
-    vim.api.nvim_set_keymap(
-      "t",
-      "<C-h>",
-      [[<C-\><C-n><cmd>TmuxNavigateLeft<CR>]],
-      { noremap = true, silent = true }
-    )
-    vim.api.nvim_set_keymap(
-      "t",
-      "<C-l>",
-      [[<C-\><C-n><cmd>TmuxNavigateRight<CR>]],
-      { noremap = true, silent = true }
-    )
-	vim.api.nvim_set_keymap(
-	  "t",
-	  "<C-j>",
-	  [[<C-\><C-n><cmd>TmuxNavigateDown<CR>]],
-	  { noremap = true, silent = true }
-	)
-    vim.api.nvim_set_keymap("t", "<C-k>", [[<C-\><C-n><cmd>TmuxNavigateUp<CR>]], {
-      noremap = true,
-      silent = true,
-    })
+    for key, direction in pairs({ h = "Left", j = "Down", k = "Up", l = "Right" }) do
+      vim.keymap.set(
+        "t",
+        "<C-" .. key .. ">",
+        [[<C-\><C-n><Cmd>TmuxNavigate]] .. direction .. "<CR>",
+        { silent = true, desc = "Navigate " .. direction:lower() }
+      )
+    end
   end,
 }

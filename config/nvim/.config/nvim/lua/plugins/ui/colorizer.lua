@@ -7,7 +7,7 @@ return {
       user_default_options = {
         RGB = true,
         RRGGBB = true,
-        names = true,
+        names = false,
         RRGGBBAA = true,
         rgb_fn = true,
         hsl_fn = true,

@@ -1,76 +1,96 @@
 local excluded_filetypes = {
-	toggleterm = true,
+  toggleterm = true,
+}
+
+local parsers = {
+  "bash",
+  "c",
+  "cpp",
+  "css",
+  "dockerfile",
+  "go",
+  "gomod",
+  "gosum",
+  "html",
+  "java",
+  "javascript",
+  "json",
+  "lua",
+  "markdown",
+  "markdown_inline",
+  "python",
+  "sql",
+  "toml",
+  "tsx",
+  "typescript",
+  "vim",
+  "vimdoc",
+  "yaml",
 }
 
 local function has_treesitter_parser(bufnr)
-	if vim.bo[bufnr].buftype ~= "" then
-		return false
-	end
+  if vim.bo[bufnr].buftype ~= "" then
+    return false
+  end
 
-	local filetype = vim.bo[bufnr].filetype
-	if filetype == "" or excluded_filetypes[filetype] then
-		return false
-	end
+  local filetype = vim.bo[bufnr].filetype
+  if filetype == "" or excluded_filetypes[filetype] then
+    return false
+  end
 
-	local ok, language = pcall(vim.treesitter.language.get_lang, filetype)
-	if not ok or not language then
-		return false
-	end
+  local ok, language = pcall(vim.treesitter.language.get_lang, filetype)
+  if not ok or not language then
+    return false
+  end
 
-	return pcall(vim.treesitter.language.add, language)
+  return pcall(vim.treesitter.language.add, language)
 end
 
 return {
-	{
-		"nvim-treesitter/nvim-treesitter",
-		build = ":TSUpdate",
-		lazy = false,
-		config = function()
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    lazy = false,
+    config = function()
+      -- The main branch installs nothing on its own; this is a no-op once installed.
+      require("nvim-treesitter").install(parsers)
 
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = "*",
-				callback = function(args)
-					if has_treesitter_parser(args.buf) then
-						pcall(vim.treesitter.start, args.buf)
-					end
-				end,
-			})
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("UserTreesitter", { clear = true }),
+        callback = function(args)
+          if has_treesitter_parser(args.buf) then
+            pcall(vim.treesitter.start, args.buf)
+            vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
+    end,
+  },
+  {
+    "HiPhish/rainbow-delimiters.nvim",
+    config = function()
+      local rainbow_delimiters = require("rainbow-delimiters")
 
-			vim.api.nvim_create_autocmd("FileType", {
-				pattern = "*",
-				callback = function(args)
-					if has_treesitter_parser(args.buf) then
-						vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-					end
-				end,
-			})
-		end,
-	},
-	{
-		"HiPhish/rainbow-delimiters.nvim",
-		config = function()
-			local rainbow_delimiters = require("rainbow-delimiters")
-
-			vim.g.rainbow_delimiters = {
-				blacklist = { "toggleterm" },
-				condition = has_treesitter_parser,
-				strategy = {
-					[""] = rainbow_delimiters.strategy["global"],
-					vim = rainbow_delimiters.strategy["local"],
-				},
-				query = {
-					[""] = "rainbow-delimiters",
-					lua = "rainbow-blocks",
-				},
-				highlight = {
-					"RainbowDelimiterViolet",
-					"RainbowDelimiterCyan",
-					"RainbowDelimiterGreen",
-					"RainbowDelimiterYellow",
-					"RainbowDelimiterOrange",
-					"RainbowDelimiterRed",
-				},
-			}
-		end,
-	},
+      vim.g.rainbow_delimiters = {
+        blacklist = { "toggleterm" },
+        condition = has_treesitter_parser,
+        strategy = {
+          [""] = rainbow_delimiters.strategy["global"],
+          vim = rainbow_delimiters.strategy["local"],
+        },
+        query = {
+          [""] = "rainbow-delimiters",
+          lua = "rainbow-blocks",
+        },
+        highlight = {
+          "RainbowDelimiterViolet",
+          "RainbowDelimiterCyan",
+          "RainbowDelimiterGreen",
+          "RainbowDelimiterYellow",
+          "RainbowDelimiterOrange",
+          "RainbowDelimiterRed",
+        },
+      }
+    end,
+  },
 }

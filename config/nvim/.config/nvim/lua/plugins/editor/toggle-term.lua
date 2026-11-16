@@ -1,120 +1,46 @@
 return {
-	"akinsho/toggleterm.nvim",
-	version = "*",
-	config = function()
-			require("toggleterm").setup({
-				size = 10,
-				open_mapping = [[<C-t>]],
-			hide_numbers = true,
-			shade_terminals = false,
-			start_in_insert = true,
-			direction = "horizontal",
-			close_on_exit = true,
-			shell = "zsh",
+  "akinsho/toggleterm.nvim",
+  version = "*",
+  config = function()
+    require("toggleterm").setup({
+      size = 10,
+      open_mapping = [[<C-t>]],
+      shade_terminals = false,
+      direction = "horizontal",
+      shell = "zsh",
+      -- Follow Neovim's working directory the next time a terminal is opened.
+      autochdir = true,
+      highlights = {
+        Normal = {
+          guibg = "#282a36",
+          guifg = "#f8f8f2",
+        },
+        NormalFloat = {
+          link = "Normal",
+        },
+        FloatBorder = {
+          guifg = "#6272a4",
+          guibg = "#282a36",
+        },
+      },
+    })
 
-			highlights = {
-				Normal = {
-					guibg = "#282a36",
-					guifg = "#f8f8f2",
-				},
-				NormalFloat = {
-					link = "Normal",
-				},
-				FloatBorder = {
-					guifg = "#6272a4",
-					guibg = "#282a36",
-				},
-			},
+    local map = vim.keymap.set
 
-			on_open = function(term)
-				local current_dir = vim.fn.getcwd()
-				if current_dir and current_dir ~= "" then
-					term:change_dir(current_dir)
-					print("Terminal opened in directory: " .. current_dir)
-				else
-					print("Failed to get current directory")
-				end
-			end,
-		})
+    -- Terminals 1-3 open horizontally, 4-6 vertically.
+    for id = 1, 6 do
+      local direction = id <= 3 and "horizontal" or "vertical"
+      map(
+        { "n", "t" },
+        "<M-" .. id .. ">",
+        "<Cmd>" .. id .. "ToggleTerm direction=" .. direction .. "<CR>",
+        { desc = "Toggle terminal " .. id }
+      )
+    end
 
-		vim.api.nvim_set_keymap(
-			"n",
-			"<M-1>",
-			"<cmd>1ToggleTerm direction=horizontal<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"n",
-			"<M-2>",
-			"<cmd>2ToggleTerm direction=horizontal<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"n",
-			"<M-3>",
-			"<cmd>3ToggleTerm direction=horizontal<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"n",
-			"<M-4>",
-			"<cmd>4ToggleTerm direction=vertical<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"n",
-			"<M-5>",
-			"<cmd>5ToggleTerm direction=vertical<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"n",
-			"<M-6>",
-			"<cmd>6ToggleTerm direction=vertical<CR>",
-			{ noremap = true, silent = true }
-		)
-
-		vim.api.nvim_set_keymap(
-			"t",
-			"<M-1>",
-			"<cmd>1ToggleTerm direction=horizontal<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"t",
-			"<M-2>",
-			"<cmd>2ToggleTerm direction=horizontal<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"t",
-			"<M-3>",
-			"<cmd>3ToggleTerm direction=horizontal<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"t",
-			"<M-4>",
-			"<cmd>4ToggleTerm direction=vertical<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"t",
-			"<M-5>",
-			"<cmd>5ToggleTerm direction=vertical<CR>",
-			{ noremap = true, silent = true }
-		)
-		vim.api.nvim_set_keymap(
-			"t",
-			"<M-6>",
-			"<cmd>6ToggleTerm direction=vertical<CR>",
-			{ noremap = true, silent = true }
-		)
-
-		vim.api.nvim_set_keymap("n", "<M-=>", ":resize +5<CR>", { noremap = true, silent = true })
-		vim.api.nvim_set_keymap("n", "<M-->", ":resize -5<CR>", { noremap = true, silent = true })
-
-		vim.api.nvim_set_keymap("t", "<M-=>", "<C-\\><C-n>:resize +5<CR>", { noremap = true, silent = true })
-		vim.api.nvim_set_keymap("t", "<M-->", "<C-\\><C-n>:resize -5<CR>", { noremap = true, silent = true })
-	end,
+    map("n", "<M-=>", "<Cmd>resize +5<CR>", { desc = "Grow terminal" })
+    map("n", "<M-->", "<Cmd>resize -5<CR>", { desc = "Shrink terminal" })
+    map("t", "<M-=>", [[<C-\><C-n><Cmd>resize +5<CR>]], { desc = "Grow terminal" })
+    map("t", "<M-->", [[<C-\><C-n><Cmd>resize -5<CR>]], { desc = "Shrink terminal" })
+  end,
 }

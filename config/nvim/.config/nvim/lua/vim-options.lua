@@ -1,23 +1,21 @@
-vim.o.number = true
-vim.o.relativenumber = true
-
-vim.opt.tabstop = 2
-vim.opt.shiftwidth = 2
-vim.opt.softtabstop = 2
-vim.opt.expandtab = true
-
-vim.o.clipboard = "unnamedplus"
-
 vim.g.mapleader = " "
 
-vim.api.nvim_set_keymap("n", "j", "jzz", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "k", "kzz", { noremap = true, silent = true })
+local opt = vim.opt
 
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "markdown",
-  callback = function()
-    vim.opt_local.tabstop = 2
-    vim.opt_local.shiftwidth = 2
-    vim.opt_local.expandtab = true
-  end,
-})
+opt.termguicolors = true
+opt.number = true
+opt.relativenumber = true
+opt.signcolumn = "yes"
+-- Keep the cursor line vertically centred.
+opt.scrolloff = 999
+
+opt.tabstop = 2
+opt.shiftwidth = 2
+opt.softtabstop = 2
+opt.expandtab = true
+
+opt.ignorecase = true
+opt.smartcase = true
+
+opt.clipboard = "unnamedplus"
+opt.undofile = true
