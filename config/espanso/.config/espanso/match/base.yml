@@ -1,11 +1,17 @@
-global_vars:
-  - name: clipboard
-    type: shell
-    params:
-      cmd: "wl-paste --no-newline --type text 2>/dev/null || echo '[CLIPBOARD EMPTY]'"
+# Prefix convention: every trigger starts with ";".
+# Multi-line expansions use force_mode: clipboard so newlines are pasted,
+# never typed as Enter (which would send a chatbot message early).
+
+# Shared variable: current clipboard text (espanso built-in, no shell spawn).
+clipboard_var: &clipboard_var
+  name: clipboard
+  type: clipboard
 
 matches:
-  - trigger: ":test"
+  # Wrap the copied test in a solving prompt.
+  - trigger: ";test"
+    force_mode: clipboard
+    vars: [*clipboard_var]
     replace: |-
       Answer the test below. Solve each question, then double-check every answer. For questions with multiple correct options, verify that you included all correct options and no incorrect ones.
 
@@ -18,7 +24,10 @@ matches:
       {{clipboard}}
       ```
 
-  - trigger: ":abs"
+  # Create tomorrow's ABS workout task from the copied YouTube link.
+  - trigger: ";abs"
+    force_mode: clipboard
+    vars: [*clipboard_var]
     replace: |-
       Create a new TickTick task for tomorrow's ABS workout, using my most recent ABS Workout task as the template.
 
@@ -34,5 +43,29 @@ matches:
       Link:
       {{clipboard}}
 
-  - trigger: ":commit"
+  # Create tomorrow's Legs workout task from the copied YouTube link.
+  - trigger: ";legs"
+    force_mode: clipboard
+    vars: [*clipboard_var]
+    replace: |-
+      Create a new TickTick task for tomorrow's Legs workout, using my most recent Legs Workout task as the template.
+
+      - Search my tasks for the latest completed "Legs Workout" task and copy its structure.
+      - Title: "Legs Workout"
+      - Project: Inbox
+      - Due date: tomorrow, all-day, timezone Asia/Almaty
+      - Priority: high
+      - Tag: Calisthenics
+      - Checklist: copy the items from the template (e.g. "Warm-Up - 5 minutes" and the main workout)
+      - Description: the YouTube link below
+
+      Link:
+      {{clipboard}}
+
+  - trigger: ";commit"
     replace: 'git commit -m "$|$"'
+
+  # ;t;name;  ->  <name>\n|\n</name>   (cursor on the middle line)
+  - regex: ";t;(?P<name>[A-Za-z_][\\w.-]*);"
+    force_mode: clipboard
+    replace: "<{{name}}>\n$|$\n</{{name}}>"

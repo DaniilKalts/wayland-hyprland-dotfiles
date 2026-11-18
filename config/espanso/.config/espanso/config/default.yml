@@ -1,3 +1,5 @@
 keyboard_layout:
   layout: "us"
 search_shortcut: off
+key_delay: 0
+inject_delay: 0
