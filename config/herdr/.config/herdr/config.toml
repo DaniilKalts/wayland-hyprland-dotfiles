@@ -1,0 +1,46 @@
+onboarding = false
+
+[theme]
+name = "dracula"
+auto_switch = false
+
+[keys]
+close_tab = "ctrl+w"
+close_pane = "ctrl+x"
+close_workspace = "ctrl+shift+w"
+previous_workspace = "ctrl+shift+s"
+cycle_pane_previous = "ctrl+shift+p"
+cycle_pane_next = "ctrl+p"
+help             = "ctrl+/"
+settings         = "ctrl+,"
+new_tab          = "ctrl+t"
+toggle_sidebar   = "ctrl+m"
+next_tab = "ctrl+tab"
+previous_tab = "ctrl+shift+tab"
+switch_tab         = "ctrl+1..9"
+rename_tab         = "ctrl+r"
+detach             = "ctrl+q"
+next_workspace = "ctrl+s"
+next_agent         = "ctrl+a"
+new_workspace = "ctrl+n"
+rename_workspace   = "ctrl+shift+r"
+switch_workspace   = "ctrl+shift+1..9"
+zoom               = "ctrl+z"
+
+[ui]
+status_indicators = "dots"
+
+[ui.toast]
+delivery = "system"
+
+[[keys.command]]
+key = "ctrl+enter"
+type = "shell"
+command = "~/.local/bin/herdr-spiral-split.sh"
+
+[[keys.command]]
+key = "ctrl+f"
+type = "popup"
+command = "sh ~/.config/herdr/find-agents.sh"
+width = "80%"
+height = "55%"

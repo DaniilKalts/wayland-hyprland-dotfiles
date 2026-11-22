@@ -63,7 +63,7 @@ matches:
       {{clipboard}}
 
   - trigger: ";commit"
-    replace: 'git commit -m "$|$"'
+    replace: 'git commit -m "$|$'
 
   # ;t;name;  ->  <name>\n|\n</name>   (cursor on the middle line)
   - regex: ";t;(?P<name>[A-Za-z_][\\w.-]*);"

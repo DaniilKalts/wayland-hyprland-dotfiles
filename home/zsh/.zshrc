@@ -173,6 +173,7 @@ bindkey -M viins 'jk' enter-vi-normal-mode
   local keymap
   for keymap in viins vicmd; do
     bindkey -M $keymap '^[a' autosuggest-accept
+    bindkey -M $keymap '^A' autosuggest-accept
     bindkey -M $keymap '^R' fzf-history-widget
     bindkey -M $keymap '^F' fzf-file-widget
     bindkey -M $keymap '^P' fzf_preview
