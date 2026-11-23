@@ -21,7 +21,7 @@ const GROUPS = ["Recent", "Tab", "Pane", "Space", "Layout", "Terminal", "Agent",
 
 // The palette's names for commands: [command, args, group, title, keywords].
 const NAMED = [
-  ["tab.new", {}, "Tab", "New tab", "tab agent new task"],
+  ["copy-toast.newtab", {}, "Tab", "New tab", "tab agent new task"],
   ["mod.open", { name: "picker" }, "Tab", "Go to space or tab…", "switch jump find"],
   ["tab.rename", {}, "Tab", "Rename tab", "tab"],
   ["tab.close", {}, "Tab", "Close tab", "tab kill"],
@@ -33,7 +33,7 @@ const NAMED = [
   ["pane.zoom", {}, "Pane", "Zoom pane", "maximize fullscreen"],
   ...["left", "right", "up", "down"].map((d) => ["pane.go", { direction: d }, "Pane", `Focus pane ${d}`, "move go"]),
   ...["left", "right", "up", "down"].map((d) => ["pane.swap", { direction: d }, "Pane", `Swap pane ${d}`, "move"]),
-  ["space.new", {}, "Space", "New space", "workspace"],
+  ["copy-toast.newspace", {}, "Space", "New space", "workspace"],
   ["space.rename", {}, "Space", "Rename space", "workspace"],
   ["space.close", {}, "Space", "Close space", "workspace kill"],
   ["space.next", {}, "Space", "Next space", "workspace"],

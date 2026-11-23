@@ -4,6 +4,9 @@ onboarding = false
 name = "dracula"
 auto_switch = false
 
+[theme.custom]
+red = "reset"
+
 [keys]
 close_tab = "ctrl+w"
 close_pane = "ctrl+x"
